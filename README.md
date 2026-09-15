@@ -1,2 +1,3 @@
-# playwright-python-bdd-frontend
-Frontend tests written in Python using the Playwright framework, adapted to the Behavior Driven Development (BDD) methodology.
+<div align="center">
+  <img src="images/project_banner.jpg" alt="project banner, rest assured and java logo, project name">
+</div>
