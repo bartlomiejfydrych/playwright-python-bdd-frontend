@@ -58,6 +58,10 @@ I know I could do more, but I also don't want to stay on this project too long b
 
 ### General
 
+- PyCharm
+- Python 3.14.5
+- Claude (Anthropic) and ChatGPT (for refactor and complicated methods)
+
 ### Frontend (UI tests)
 
 ### Tests
