@@ -290,6 +290,187 @@ bez wychodzenia z IDE.
 
 Jeśli pracujesz z Allure, ta wtyczka **znacznie ułatwia życie**! 🔥
 
+## 🥒Gherkin
+
+**Gherkin** jako plugin IDE służy do zapewnienia **wsparcia dla języka Gherkin**, używanego m.in. przez `pytest-bdd`.
+
+Sam **Gherkin nie jest frameworkiem testowym**. Jest językiem służącym do opisywania scenariuszy zachowania aplikacji
+w czytelnej, strukturalnej formie.
+
+Przykład:
+
+```gherkin
+Feature: Login
+
+  Scenario: Successful login
+    Given the user is on the login page
+    When the user enters valid credentials
+    Then the dashboard should be displayed
+```
+
+Plugin pozwala IDE rozpoznawać taką składnię i odpowiednio ją obsługiwać.
+
+### 1. Co daje plugin Gherkin?
+
+W zależności od IDE/pluginu może zapewniać m.in.:
+
+* rozpoznawanie plików `.feature`,
+* kolorowanie składni Gherkin,
+* podpowiedzi dla `Feature`, `Scenario`, `Given`, `When`, `Then` itd.,
+* nawigację pomiędzy scenariuszem a implementacją kroku,
+* sprawdzanie składni,
+* wsparcie dla języka Gherkin podczas edycji.
+
+Czyli zamiast traktować:
+
+```text
+login.feature
+```
+
+jak zwykły plik tekstowy, IDE rozumie, że jest to **plik zawierający scenariusze BDD**.
+
+### 2. Gherkin a `pytest-bdd`
+
+To bardzo ważne rozróżnienie:
+
+```text
+Gherkin
+   ↓
+język do opisywania zachowania
+
+pytest-bdd
+   ↓
+framework/plugin umożliwiający wykonywanie
+scenariuszy Gherkin jako testów pytest
+```
+
+Czyli Gherkin sam w sobie **nie wykonuje testów**.
+
+Na przykład:
+
+```gherkin
+Given the user is on the login page
+When the user enters valid credentials
+Then the dashboard should be displayed
+```
+
+to tylko **opis scenariusza**.
+
+Dopiero `pytest-bdd` łączy te kroki z Pythonem:
+
+```python
+@given("the user is on the login page")
+def open_login_page(page):
+    ...
+```
+
+### 3. Jak wygląda cały zestaw?
+
+W Twoim przypadku można to przedstawić tak:
+
+```text
+Gherkin plugin
+      ↓
+obsługa plików .feature w IDE
+      ↓
+Gherkin
+      ↓
+opis scenariusza BDD
+      ↓
+pytest-bdd
+      ↓
+wykonanie scenariusza
+      ↓
+pytest
+```
+
+A jeżeli dodamy wcześniejsze elementy:
+
+```text
+Gherkin plugin
+      ↓
+.feature
+      ↓
+Gherkin
+      ↓
+pytest-bdd
+      ↓
+pytest
+      ↓
+pytest-playwright
+      ↓
+Playwright
+      ↓
+Browser
+      ↓
+allure-pytest-bdd
+      ↓
+Allure Report
+```
+
+### 4. Czy plugin Gherkin jest potrzebny do działania `pytest-bdd`?
+
+**Nie.**
+
+To istotne.
+
+`pytest-bdd` może działać bez zainstalowanego pluginu Gherkin w IDE.
+
+Plugin Gherkin jest przede wszystkim **narzędziem wspomagającym pracę programisty/testera w IDE**.
+
+Czyli:
+
+```text
+pytest-bdd → potrzebny do wykonywania testów BDD
+Gherkin plugin → ułatwia tworzenie i edycję plików .feature
+```
+
+Możesz więc mieć:
+
+```text
+pytest-bdd
+pytest-playwright
+allure-pytest-bdd
+```
+
+i testy będą działały nawet bez pluginu Gherkin.
+
+### 5. Gherkin nie oznacza tylko `Given/When/Then`
+
+Gherkin ma również inne elementy, np.:
+
+```gherkin
+Feature:
+Background:
+Scenario:
+Scenario Outline:
+Examples:
+Given
+When
+Then
+And
+But
+```
+
+Przykładowo:
+
+```gherkin
+Feature: Board management
+
+  Scenario: Create a new board
+    Given the user is logged in
+    When the user creates a board named "Test Board"
+    Then the board should be created successfully
+```
+
+Plugin Gherkin pozwala IDE odpowiednio rozpoznawać te konstrukcje.
+
+### Krótka definicja do notatek
+
+> **Gherkin (plugin)** – plugin IDE zapewniający wsparcie dla języka Gherkin, używanego do tworzenia scenariuszy BDD
+> w plikach `.feature`. Oferuje m.in. kolorowanie składni, walidację, podpowiedzi i nawigację po krokach
+> `Given/When/Then`. Nie wykonuje testów – za wykonywanie scenariuszy Gherkin w Pythonie może odpowiadać np. `pytest-bdd`.
+
 ---
 
 # 📚Dependencies — Opis
