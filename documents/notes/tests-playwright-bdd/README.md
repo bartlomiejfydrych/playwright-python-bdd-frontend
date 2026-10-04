@@ -13,6 +13,7 @@
 - [PROBLEM: Nietypowa ścieżka projektu](#problem-nietypowa-ścieżka-projektu)
 - [PROBLEM: Brak logów kroków BDD w konsoli](#problem-brak-logów-kroków-bdd-w-konsoli)
 - [PROBLEM: Brak SZCZEGÓŁOWYCH logów kroków BDD w konsoli](#problem-brak-szczegółowych-logów-kroków-bdd-w-konsoli)
+- [PROBLEM: Nietypowa ścieżka projektu blokuje uruchamianie plików Python przez IDE](#problem-nietypowa-ścieżka-projektu-blokuje-uruchamianie-plików-python-przez-ide)
 
 ---
 
@@ -311,4 +312,133 @@ Feature: Home page
         Given the user opens the home page
         Then the page title should be "A place to practice your automation skills!"
     PASSED
+```
+
+---
+
+## 📄PROBLEM: Nietypowa ścieżka projektu blokuje uruchamianie plików Python przez IDE
+
+> Problem: `[1]` w ścieżce projektu psuło pytest + venv
+
+Kontekst: repozytorium leżało w `D:\[1]-Projekty\playwright-python-bdd-frontend`. Nawias kwadratowy w nazwie folderu
+powodował dwa niezależne od siebie problemy — opisane niżej wraz z pełnym rozwiązaniem krok po kroku.
+
+### 1. Błąd pytest: `path cannot contain [] parametrization`
+
+**Objaw**
+
+Uruchomienie testu w PyCharm przez kliknięcie prawym na plik step-defów → Run kończyło się błędem:
+
+```
+ERROR: path cannot contain [] parametrization: D:\[1]-Projekty\playwright-python-bdd-frontend\tests\steps\test_home.py
+```
+
+**Przyczyna**
+
+Pytest, odbierając ścieżkę do zebrania testów, szuka w niej znaku `[`, bo w tej formie zapisuje się ID
+sparametryzowanych testów (`test_foo.py::test_x[param]`). PyCharm, generując konfigurację Run dla kliknięcia prawym na
+plik, wstawia tam **pełną, bezwzględną ścieżkę** do pliku testowego. Skoro ta ścieżka zawierała `[1]-Projekty`, pytest
+próbował to zinterpretować jako selektor parametryzacji i się wykładał. To ograniczenie samego pytesta, niezwiązane z
+pytest-bdd.
+
+**Rozwiązanie, które wybraliśmy: zmiana nazwy katalogu**
+
+1. Zamknij PyCharm i wszystkie okna terminala/cmd otwarte w tym katalogu (żeby Windows nie blokował plików podczas
+   zmiany nazwy).
+2. W Eksploratorze plików zmień nazwę `D:\[1]-Projekty` na np. `D:\Projekty`. Cały projekt, włącznie z folderem `.git`,
+   przenosi się razem z folderem nadrzędnym — historia Gita zostaje nienaruszona.
+3. Otwórz projekt w PyCharm ponownie, wskazując nową lokalizację: `File → Open` →
+   `D:\Projekty\playwright-python-bdd-frontend`.
+
+*(Rozważane, ale niewykorzystane alternatywy: junction/symlink katalogu bez nawiasów wskazujący na oryginalny folder,
+albo ręczna edycja konfiguracji Run w PyCharm tak, żeby working directory + względna ścieżka do testu nie zawierały `[`.
+Zmiana nazwy katalogu była prostsza, bo projekt był jeszcze na wczesnym etapie.)*
+
+### 2. Błąd WindowsApps: „nie znaleziono Python"
+
+**Objaw**
+
+Po zmianie nazwy katalogu trzeba było odtworzyć venv (stare środowisko ma zaszyte bezwzględne ścieżki w skryptach
+aktywacyjnych i nie da się go po prostu przenieść). Próba uruchomienia `python -m venv venv` kończyła się błędem:
+
+```
+nie znaleziono Python; uruchom bez argumentów, aby zainstalować
+```
+
+**Przyczyna**
+
+`python` w zmiennej PATH wskazywał najpierw na atrapę — tzw. App Execution Alias — w
+`C:\Users\<user>\AppData\Local\Microsoft\WindowsApps\python.exe`, zamiast na prawdziwy interpreter w
+`C:\Users\<user>\AppData\Local\Python\bin\python.exe`. Ta atrapa, uruchomiona bez argumentów, miałaby otworzyć Microsoft
+Store, ale z argumentem (`-m venv`) tylko zwraca błąd.
+
+**Rozwiązanie krok po kroku**
+
+1. Sprawdź, co widzi terminal:
+   ```
+   where python
+   ```
+   Jeśli pierwszy wpis to ścieżka z `WindowsApps\python.exe` — to on wygrywa pierwszeństwo w PATH i jest źródłem
+   problemu.
+
+2. Wyłącz alias w Ustawieniach Windows: `Ustawienia` → `Aplikacje` → `Zaawansowane ustawienia aplikacji` →
+   `Aliasy wykonywania aplikacji`. Znajdź wpisy `python.exe` / `python3.exe` i przełącz na **Wyłączone**. To samo w
+   sobie może nie wystarczyć, stąd krok 3.
+
+3. Usuń fizycznie pliki-atrapy:
+   ```
+   cd C:\Users\<user>\AppData\Local\Microsoft\WindowsApps
+   del python.exe
+   del python3.exe
+   ```
+   Przy błędzie dostępu — uruchom to samo okno cmd jako administrator.
+
+4. Zweryfikuj:
+   ```
+   where python
+   python --version
+   ```
+   Powinien zostać już tylko jeden wpis, a `--version` ma zwrócić poprawny numer (u nas 3.14.5).
+
+5. Otwórz nowe okno terminala przed kolejną próbą — PATH bywa odczytywany raz, przy starcie sesji.
+
+**Utworzenie środowiska — ostatecznie przez PyCharm**
+
+Zamiast ręcznego `python -m venv venv`, środowisko założyliśmy przez okno **Add Python Interpreter**:
+
+1. `Settings` → `Project` → `Python Interpreter` → `Add Interpreter` → `Add Local Interpreter`.
+2. `Environment: Generate new`, `Type: Virtualenv`.
+3. `Base Python`: wskaż `...\Local\Python\bin\python.exe` (3.14), jeśli nie zaznaczony automatycznie.
+4. `Location`: domyślne `...\.venv` jest w porządku (folder ukryty) — albo zmień na `...\venv` dla spójności ze starą
+   nazwą.
+5. Zostaw odznaczone `Inherit packages from base interpreter` i `Make available to all projects`.
+6. `OK` — PyCharm tworzy środowisko i ustawia je jako interpreter projektu.
+
+*(Jeśli wcześniej próbowałeś też `python -m venv venv` z linii poleceń przed naprawieniem WindowsApps, mógł powstać
+pusty/niekompletny folder `venv` obok nowego `.venv` — taki folder po prostu skasuj.)*
+
+### 3. Instalacja zależności — `requirements.txt`
+
+1. Utwórz w katalogu głównym `requirements.txt`:
+   ```
+   playwright==1.63.0
+   pytest-bdd==8.1.0
+   pytest-playwright==0.9.0
+   pytest==9.1.1
+   python-slugify
+   requests
+   ```
+2. Zainstaluj jedną komendą: `pip install -r requirements.txt`
+3. Doinstaluj binaria przeglądarek osobno (to nie jest paczka pip): `playwright install`
+4. Żeby plik był aktualny po kolejnych instalacjach: `pip freeze > requirements.txt`
+5. Dopisz `requirements.txt` do Gita, a `.venv/` dodaj do `.gitignore`.
+
+### 4. `pytest.ini` — `testpaths = tests`
+
+Linia została w konfiguracji, mimo że pierwotny powód (obejście nawiasu w ścieżce) zniknął wraz ze zmianą nazwy
+katalogu — nadal ogranicza domyślne przeszukiwanie testów (gołe `pytest`) do katalogu `tests` zamiast całego katalogu
+roboczego, co zapobiega zaglądaniu np. do `.venv`:
+
+```ini
+testpaths = tests
 ```
