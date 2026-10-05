@@ -14,6 +14,7 @@
 - [PROBLEM: Brak logów kroków BDD w konsoli](#problem-brak-logów-kroków-bdd-w-konsoli)
 - [PROBLEM: Brak SZCZEGÓŁOWYCH logów kroków BDD w konsoli](#problem-brak-szczegółowych-logów-kroków-bdd-w-konsoli)
 - [PROBLEM: Nietypowa ścieżka projektu blokuje uruchamianie plików Python przez IDE](#problem-nietypowa-ścieżka-projektu-blokuje-uruchamianie-plików-python-przez-ide)
+- [Base Page vs. Home Page – Czym się różnią](#base-page-vs-home-page--czym-się-różnią)
 
 ---
 
@@ -283,7 +284,7 @@ nie dokładać warstwy, z której nikt nie skorzysta.
 
 ---
 
-## 📄PROBLEM: Brak SZCZEGÓŁOWYCH logów kroków BDD w konsoli
+# 📄PROBLEM: Brak SZCZEGÓŁOWYCH logów kroków BDD w konsoli
 
 Dobre spostrzeżenie — to zależy od poziomu "verbosity" (`-v`).
 
@@ -316,7 +317,7 @@ Feature: Home page
 
 ---
 
-## 📄PROBLEM: Nietypowa ścieżka projektu blokuje uruchamianie plików Python przez IDE
+# 📄PROBLEM: Nietypowa ścieżka projektu blokuje uruchamianie plików Python przez IDE
 
 > Problem: `[1]` w ścieżce projektu psuło pytest + venv
 
@@ -442,3 +443,35 @@ roboczego, co zapobiega zaglądaniu np. do `.venv`:
 ```ini
 testpaths = tests
 ```
+
+---
+
+# 📄Base Page vs. Home Page – Czym się różnią
+
+`BasePage` **nie wskazuje na żadną konkretną stronę**. To klasa bazowa ze wspólnymi mechanizmami, z których korzystają
+wszystkie Page Objecty. `HomePage` opisuje jedną konkretną stronę.
+
+|                                  | `BasePage`                                | `HomePage`                                              |
+|----------------------------------|-------------------------------------------|---------------------------------------------------------|
+| **Rola**                         | wspólny fundament dla wszystkich stron    | model strony głównej                                    |
+| **Wie o**                        | obiekcie `Page` z Playwrighta             | `#featured`, `a.logo`, kafelkach produktów, kategoriach |
+| **Lokatory**                     | brak                                      | wszystkie, ale tylko dla tej strony                     |
+| **Metody**                       | `goto()`, `title()`                       | `search()`, `add_product_to_cart()`, `open_category()`  |
+| **Liczba instancji w projekcie** | jedna klasa, dziedziczona przez wszystkie | jedna na każdą stronę (`LoginPage`, `CartPage`...)      |
+
+Kod tylko wygląda, jakby dotyczył tego samego, bo `HomePage` **dziedziczy** po `BasePage` (`class HomePage(BasePage)`) i
+dostaje jej metody. `home.goto("/")` i `home.title()` działają w `HomePage` bez ponownego pisania, bo pochodzą z
+`BasePage`.
+
+**Po co ten podział**
+
+Elementy, które powtarzają się na każdej podstronie, piszesz raz w `BasePage`. Wtedy `HomePage`, `LoginPage` czy
+`CartPage` dostają je za darmo. Dobre kandydatki do przeniesienia do `BasePage`:
+
+- nagłówek: logo, menu górne, wyszukiwarka, mini-koszyk, przełącznik waluty (są na każdej podstronie),
+- stopka z linkami, newsletter, "Back to top",
+- wspólne akcje: `click_cart()`, `search()`, `change_currency()`,
+- pomocnicze: `wait_for_url()`, `scroll_to_footer()`.
+
+Teraz mam je w `HomePage`, więc przy dodaniu `LoginPage` trzeba by je skopiować. Lepiej je tam przenieść, a w `HomePage`
+zostawić tylko to, co jest unikalne dla strony głównej: sekcje produktowe, baner, promo, karuzelę marek, testimoniale.
