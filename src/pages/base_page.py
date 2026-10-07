@@ -3,9 +3,8 @@ from playwright.sync_api import Locator, Page, expect
 
 class BasePage:
     """
-    Elementy wspólne dla stron sklepu (zweryfikowane na stronie głównej
-    i stronie logowania): nagłówek, wyszukiwarka, waluta, mini-koszyk,
-    menu kategorii oraz stopka z newsletterem.
+    Common elements across store pages (verified on the home page and login page):
+    header, search box, currency, mini-basket, category menu, and newsletter footer.
     """
 
     # ==========================================================================================================
@@ -14,7 +13,7 @@ class BasePage:
 
     CURRENCIES = ("USD", "EUR", "GBP")
 
-    # kategorie główne: nazwa -> path
+    # Main categories: name ➤ path
     CATEGORIES = {
         "Apparel & accessories": "68",
         "Makeup": "36",
@@ -24,7 +23,7 @@ class BasePage:
         "Hair Care": "52",
         "Books": "65",
     }
-    # podkategorie: nazwy się powtarzają, więc kluczem jest path
+    # Subcategories: names are repeated, so the key is path
     SUBCATEGORIES = {
         "Shoes": "68_69", "T-shirts": "68_70",
         "Makeup > Cheeks": "36_40", "Makeup > Eyes": "36_39",
@@ -39,16 +38,26 @@ class BasePage:
         "Hair Care > Conditioner": "52_54", "Hair Care > Shampoo": "52_53",
         "Books > Audio CD": "65_66", "Books > Paperback": "65_67",
     }
+
     # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region LOCATORS
+    # ==========================================================================================================
 
     def __init__(self, page: Page):
         self.page = page
 
-        # --- Nagłówek ---
+        # ---
+        # TOP
+        # ---
+
+        # Header
         self.logo = page.locator("a.logo")
         self.login_or_register_link = page.locator("#customer_menu_top a")
 
-        # menu górne (#main_menu_top występuje raz; drugie menu jest w #categorymenu)
+        # Top menu (#main_menu_top appears once; the second menu is in #categorymenu)
         self.specials_link = page.locator("#main_menu_top a.menu_specials")
         self.account_link = page.locator("#main_menu_top a.menu_account")
         self.login_link = page.locator("#main_menu_top a.menu_login")
@@ -56,7 +65,7 @@ class BasePage:
         self.cart_link = page.locator("#main_menu_top li[data-id='menu_cart'] a")
         self.checkout_link = page.locator("#main_menu_top a.menu_checkout")
 
-        # wyszukiwarka
+        # Search engine
         self.search_input = page.locator("#filter_keyword")
         self.search_button = page.locator(".button-in-search")
         self.search_category_selected = page.locator("#category_selected")
@@ -64,11 +73,11 @@ class BasePage:
             "#search-category a[id^='category_']:not(#category_selected)"
         )
 
-        # waluta
+        # Currency
         self.currency_toggle = page.locator("ul.language a.dropdown-toggle")
         self.currency_options = page.locator("ul.currency a")
 
-        # mini-koszyk
+        # Mini-basket
         self.cart_toggle = page.locator("ul.topcart a.dropdown-toggle")
         self.cart_count = page.locator("ul.topcart span.label-orange")
         self.cart_total = page.locator("ul.topcart span.cart_total")
@@ -76,14 +85,22 @@ class BasePage:
         self.mini_cart_checkout_button = page.locator("ul.topcart a[title='Checkout']")
         self.mini_cart_empty_info = page.locator("#top_cart_product_list .empty_cart")
 
-        # --- Menu kategorii ---
+        # ---
+        # MID
+        # ---
+
+        # Category menu
         self.category_menu = page.locator("#categorymenu")
         self.home_link = page.locator("#categorymenu a.menu_home")
         self.top_categories = page.locator(
             "#categorymenu ul.categorymenu > li > a:not(.menu_home)"
         )
 
-        # --- Stopka ---
+        # ------
+        # BOTTOM
+        # ------
+
+        # Footer
         self.footer = page.locator("footer")
         self.about_us_block = page.locator("footer .footersocial h2", has_text="About Us")
         self.contact_us_block = page.locator("footer .footersocial h2", has_text="Contact Us")
@@ -104,21 +121,30 @@ class BasePage:
         self.linkedin_link = page.locator("footer a.linkedin")
         self.back_to_top_link = page.locator("#gotop")
 
-        # --- Modal komunikatów ---
+        # Message modal
         self.message_modal = page.locator("#msgModal")
 
-    # ------------------------------------------------------------------ #
-    # Nawigacja
-    # ------------------------------------------------------------------ #
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region METHODS
+    # ==========================================================================================================
+
+    # ----------
+    # Navigation
+    # ----------
+
     def goto(self, path: str = "/"):
         self.page.goto(path)
 
     def title(self) -> str:
         return self.page.title()
 
-    # ------------------------------------------------------------------ #
-    # Lokatory dynamiczne
-    # ------------------------------------------------------------------ #
+    # ----------------
+    # Dynamic locators
+    # ----------------
+
     def currency_option(self, code: str) -> Locator:
         return self.page.locator(f"ul.currency a[href*='currency={code}']")
 
@@ -136,9 +162,10 @@ class BasePage:
             has_text=name,
         )
 
-    # ------------------------------------------------------------------ #
-    # Akcje: nagłówek
-    # ------------------------------------------------------------------ #
+    # ---------------
+    # Actions: Header
+    # ---------------
+
     def click_logo(self) -> None:
         self.logo.click()
 
@@ -165,9 +192,10 @@ class BasePage:
     def click_checkout(self) -> None:
         self.checkout_link.click()
 
-    # ------------------------------------------------------------------ #
-    # Akcje: wyszukiwarka, waluta, mini-koszyk
-    # ------------------------------------------------------------------ #
+    # ---------------------------------------------
+    # Actions: search engine, currency, mini-basket
+    # ---------------------------------------------
+
     def search(self, phrase: str, category: str | None = None) -> None:
         self.search_input.click()  # focus otwiera listę kategorii
         if category:
@@ -194,9 +222,10 @@ class BasePage:
         self.open_mini_cart()
         self.mini_cart_checkout_button.click()
 
-    # ------------------------------------------------------------------ #
-    # Akcje: kategorie
-    # ------------------------------------------------------------------ #
+    # -------------------
+    # Actions: Categories
+    # -------------------
+
     def click_home(self) -> None:
         self.home_link.click()
 
@@ -211,9 +240,10 @@ class BasePage:
         self.category_link(parent).hover()  # podkategorie rozwijają się na hover
         self.subcategory_link(name).click()
 
-    # ------------------------------------------------------------------ #
-    # Akcje: stopka
-    # ------------------------------------------------------------------ #
+    # ---------------
+    # Actions: footer
+    # ---------------
+
     def scroll_to_footer(self) -> None:
         self.footer.scroll_into_view_if_needed()
 
@@ -224,9 +254,10 @@ class BasePage:
         self.newsletter_email_input.fill(email)
         self.newsletter_submit_button.click()
 
-    # ------------------------------------------------------------------ #
-    # Odczyty
-    # ------------------------------------------------------------------ #
+    # --------
+    # Readings
+    # --------
+
     def cart_items_count(self) -> int:
         return int(self.cart_count.inner_text().strip())
 
@@ -239,11 +270,22 @@ class BasePage:
     def top_category_names(self) -> list[str]:
         return [t.strip() for t in self.top_categories.all_inner_texts()]
 
-    # ------------------------------------------------------------------ #
-    # Asercje pomocnicze
-    # ------------------------------------------------------------------ #
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region ASSERTIONS
+    # ==========================================================================================================
+
+    # -----------------
+    # Helper assertions
+    # -----------------
+
     def expect_cart_count(self, count: int) -> None:
         expect(self.cart_count).to_have_text(str(count))
 
     def expect_currency(self, symbol: str) -> None:
         expect(self.currency_toggle).to_contain_text(symbol)
+
+    # endregion
+    # ==========================================================================================================
