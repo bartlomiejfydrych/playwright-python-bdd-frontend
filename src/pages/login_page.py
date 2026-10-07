@@ -6,25 +6,52 @@ from src.pages.base_page import BasePage
 
 
 class LoginPage(BasePage):
-    """Strona logowania /index.php?rt=account/login (tytuł: Account Login)."""
+    """
+    Login page /index.php?rt=account/login (title: Account Login).
+
+    Contains only what is specific to the login page: the new customer form and the returning customer form.
+    Everything else lives in BasePage.
+    """
+
+    # ==========================================================================================================
+    # region VARIABLES
+    # ==========================================================================================================
 
     PATH = "/index.php?rt=account/login"
     TITLE = "Account Login"
 
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region LOCATORS
+    # ==========================================================================================================
+
     def __init__(self, page: Page):
         super().__init__(page)
 
-        # --- Nagłówek i okruszki ---
+        # ---------------------
+        # HEADING & BREADCRUMBS
+        # ---------------------
+
         self.heading = page.locator("h1.heading1 .maintext")
         self.breadcrumb_links = page.locator("ul.breadcrumb a")
 
-        # --- Nowy klient (formularz #accountFrm) ---
+        # ------------
+        # NEW CUSTOMER
+        # ------------
+
+        # Registration form (#accountFrm)
         self.new_customer_heading = page.locator(".newcustomer h2.heading2")
         self.register_form = page.locator("#accountFrm")
         self.register_account_radio = page.locator("#accountFrm_accountregister")
         self.continue_button = page.locator("#accountFrm button[title='Continue']")
 
-        # --- Powracający klient (formularz #loginFrm) ---
+        # ------------------
+        # RETURNING CUSTOMER
+        # ------------------
+
+        # Login form (#loginFrm)
         self.returning_customer_heading = page.locator(".returncustomer h2.heading2")
         self.login_form = page.locator("#loginFrm")
         self.login_name_input = page.locator("#loginFrm_loginname")
@@ -33,17 +60,33 @@ class LoginPage(BasePage):
         self.forgot_password_link = page.locator("a[href*='forgotten/password']")
         self.forgot_login_link = page.locator("a[href*='forgotten/loginname']")
 
-        # --- Komunikat błędu po nieudanym logowaniu ---
+        # ------
+        # ERRORS
+        # ------
+
+        # Error message after a failed login
         # UWAGA: w statycznym HTML go nie ma, klasy to założenie AbanteCart
         # (div.alert.alert-error). Zweryfikuj po pierwszym nieudanym logowaniu.
         self.error_alert = page.locator(".alert-error, .alert-danger")
 
-    # ------------------------------------------------------------------ #
-    # Akcje
-    # ------------------------------------------------------------------ #
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region METHODS
+    # ==========================================================================================================
+
+    # ----------
+    # Navigation
+    # ----------
+
     def open(self) -> "LoginPage":
         self.goto(self.PATH)
         return self
+
+    # --------------
+    # Actions: Login
+    # --------------
 
     def fill_login_name(self, login_name: str) -> None:
         self.login_name_input.fill(login_name)
@@ -59,6 +102,10 @@ class LoginPage(BasePage):
         self.fill_password(password)
         self.click_login()
 
+    # ---------------------
+    # Actions: Registration
+    # ---------------------
+
     def choose_register_account(self) -> None:
         self.register_account_radio.check()
 
@@ -69,24 +116,37 @@ class LoginPage(BasePage):
         self.choose_register_account()
         self.click_continue()
 
+    # -----------------
+    # Actions: Recovery
+    # -----------------
+
     def click_forgot_password(self) -> None:
         self.forgot_password_link.click()
 
     def click_forgot_login(self) -> None:
         self.forgot_login_link.click()
 
-    # ------------------------------------------------------------------ #
-    # Odczyty
-    # ------------------------------------------------------------------ #
+    # --------
+    # Readings
+    # --------
+
     def breadcrumb_texts(self) -> list[str]:
         return [t.strip() for t in self.breadcrumb_links.all_inner_texts()]
 
     def error_text(self) -> str:
         return self.error_alert.first.inner_text().strip()
 
-    # ------------------------------------------------------------------ #
-    # Asercje pomocnicze
-    # ------------------------------------------------------------------ #
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region ASSERTIONS
+    # ==========================================================================================================
+
+    # -----------------
+    # Helper assertions
+    # -----------------
+
     def expect_loaded(self) -> None:
         expect(self.page).to_have_title(self.TITLE)
         expect(self.page).to_have_url(re.compile(r"rt=account/login"))
@@ -96,3 +156,6 @@ class LoginPage(BasePage):
 
     def expect_error_visible(self) -> None:
         expect(self.error_alert.first).to_be_visible()
+
+    # endregion
+    # ==========================================================================================================
