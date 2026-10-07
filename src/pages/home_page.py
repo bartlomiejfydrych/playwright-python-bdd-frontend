@@ -122,9 +122,9 @@ class HomePage(BasePage):
     def brand_link(self, brand_name: str) -> Locator:
         return self.page.locator(f"#brandcarousal a:has(img[alt='{brand_name}'])").first
 
-    # -------------------
-    # Actions: Navigation
-    # -------------------
+    # ----------
+    # Navigation
+    # ----------
 
     def open(self) -> "HomePage":
         self.goto(self.PATH)
