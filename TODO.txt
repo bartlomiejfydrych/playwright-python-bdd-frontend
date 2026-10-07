@@ -1,0 +1,12 @@
+Lista rzeczy do zrobienia:
+
+– Zarejestrować jakieś normalne konto i zapisać jego dane
+– Zalogować się na nie
+– Dopisać jakieś page, które się dla niego pojawiły np. lista życzeń, płatność, profil
+– Zastanowić się jak testy miałyby się na nie autoryzować za pomocą API
+– Rozpisać `features` czyli przypadki testowe
+– Napisać pod `features` testy, czyli `steps`
+– Dodać już projekt na Linkedin i do CV
+– Weryfikować testy aż do skutku
+– Dodać raport Allure
+– Zaktualizować główne README projektu
