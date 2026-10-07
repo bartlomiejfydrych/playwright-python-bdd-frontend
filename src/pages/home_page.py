@@ -4,49 +4,82 @@ from src.pages.base_page import BasePage
 
 
 class HomePage(BasePage):
-    """Strona główna https://automationteststore.com/ (AbanteCart).
-
-    Zawiera tylko to, co specyficzne dla strony głównej. Nagłówek,
-    wyszukiwarka, waluta, mini-koszyk, menu kategorii i stopka są w BasePage.
     """
+    Home page (https://automationteststore.com/, AbanteCart).
+
+    Contains only what is specific to the home page. Header, search box, currency, mini-basket, category menu, and footer live in BasePage.
+    """
+
+    # ==========================================================================================================
+    # region VARIABLES
+    # ==========================================================================================================
 
     PATH = "/"
     TITLE = "A place to practice your automation skills!"
 
-    # klucz -> selektor sekcji produktowej na stronie głównej
+    # Product sections: key ➤ section selector
     SECTIONS = {
         "featured": "#featured",
         "latest": "#latest",
         "bestsellers": "#bestseller",
         "specials": "#special",
     }
+
+    # Brands: name ➤ manufacturer id
     BRANDS = {
         "Benefit": 12, "Pantene": 17, "M·A·C": 11, "Lancôme": 15,
         "Gucci": 20, "Giorgio Armani": 19, "Dove": 18,
         "Calvin Klein": 13, "Bvlgari": 14, "Sephora": 16,
     }
 
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region LOCATORS
+    # ==========================================================================================================
+
     def __init__(self, page: Page):
         super().__init__(page)
 
-        # --- Baner i sekcje informacyjne ---
+        # ------
+        # BANNER
+        # ------
+
+        # Banner and info sections
         self.banner = page.locator("#banner_slides")
         self.promo_blocks = page.locator("section.promo_section .promo_block")
         self.welcome_message = page.locator("section.contentpanel .welcome_msg")
 
-        # --- Produkty (wszystkie sekcje) ---
-        self.product_tiles = page.locator(".thumbnails > div")
+        # --------
+        # PRODUCTS
+        # --------
+
+        # All sections
+        self.product_tiles = page.locator(".thumbnails > div") # "prdocutname" is a typo in the store's HTML, not in our code :)
         self.product_names = page.locator("a.prdocutname")
 
-        # --- Marki ---
+        # ------
+        # BRANDS
+        # ------
+
+        # Brands carousel
         self.brands_section = page.locator("#popularbrands")
         self.brand_links = page.locator("#brandcarousal a[href*='manufacturer_id=']")
         self.brands_prev = page.locator("#prev")
         self.brands_next = page.locator("#next")
 
-    # ------------------------------------------------------------------ #
-    # Lokatory dynamiczne
-    # ------------------------------------------------------------------ #
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region METHODS
+    # ==========================================================================================================
+
+    # ----------------
+    # Dynamic locators
+    # ----------------
+
     def section(self, key: str) -> Locator:
         return self.page.locator(self.SECTIONS[key])
 
@@ -89,12 +122,17 @@ class HomePage(BasePage):
     def brand_link(self, brand_name: str) -> Locator:
         return self.page.locator(f"#brandcarousal a:has(img[alt='{brand_name}'])").first
 
-    # ------------------------------------------------------------------ #
-    # Akcje
-    # ------------------------------------------------------------------ #
+    # -------------------
+    # Actions: Navigation
+    # -------------------
+
     def open(self) -> "HomePage":
         self.goto(self.PATH)
         return self
+
+    # -----------------
+    # Actions: Products
+    # -----------------
 
     def open_product(self, key: str, product_name: str) -> None:
         self.product_name_link(key, product_name).click()
@@ -111,8 +149,10 @@ class HomePage(BasePage):
         self.product_review_link(key, product_name).click()
 
     def add_product_to_cart(self, key: str, product_name: str) -> None:
-        """Dodaje produkt z listy.
+        """
+        Adds a product from the list.
 
+        NOTE FOR ME:
         Produkty bez opcji dodają się AJAX-em (href='#'). Produkty z opcjami
         (np. Tropiques Minerale Loose Bronzer, sandały) mają w przycisku link
         do karty produktu, więc ta metoda przeniesie na stronę produktu.
@@ -124,12 +164,17 @@ class HomePage(BasePage):
         href = self.product_add_to_cart_button(key, product_name).get_attribute("href")
         return href is not None and href.rstrip("/").endswith("#")
 
+    # ---------------
+    # Actions: Brands
+    # ---------------
+
     def open_brand(self, brand_name: str) -> None:
         self.brand_link(brand_name).click()
 
-    # ------------------------------------------------------------------ #
-    # Odczyty
-    # ------------------------------------------------------------------ #
+    # --------
+    # Readings
+    # --------
+
     def product_names_in(self, key: str) -> list[str]:
         return [
             t.strip()
@@ -145,9 +190,17 @@ class HomePage(BasePage):
             for i in range(self.brand_links.count())
         ]
 
-    # ------------------------------------------------------------------ #
-    # Asercje pomocnicze
-    # ------------------------------------------------------------------ #
+    # endregion
+    # ==========================================================================================================
+
+    # ==========================================================================================================
+    # region ASSERTIONS
+    # ==========================================================================================================
+
+    # -----------------
+    # Helper assertions
+    # -----------------
+
     def expect_loaded(self) -> None:
         expect(self.page).to_have_title(self.TITLE)
         expect(self.logo).to_be_visible()
@@ -156,3 +209,6 @@ class HomePage(BasePage):
         for key in self.SECTIONS:
             expect(self.section_heading(key)).to_be_visible()
             expect(self.section_tiles(key)).to_have_count(4)
+
+    # endregion
+    # ==========================================================================================================
