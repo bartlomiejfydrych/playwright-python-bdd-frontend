@@ -3,7 +3,7 @@ from playwright.sync_api import Locator, Page, expect
 
 class BasePage:
     """
-    Common elements across store pages (verified on the home page and login page):
+    Common elements across store pages (verified on the home page and login page, logged out and logged in):
     header, search box, currency, mini-basket, category menu, and newsletter footer.
     """
 
@@ -53,14 +53,19 @@ class BasePage:
         # TOP
         # ---
 
-        # Header
+        # Header (#customer_menu_top changes with session state: logged out ➤ login_or_register_link, logged in ➤ welcome_link)
         self.logo = page.locator("a.logo")
-        self.login_or_register_link = page.locator("#customer_menu_top a")
+        self.login_or_register_link = page.locator("#customer_menu_top a")  # logged out only
+        self.welcome_link = page.locator("#customer_menu_top a.menu_account")  # logged in only: "Welcome back <name>"
+        self.welcome_text = page.locator("#customer_menu_top a.menu_account .menu_text")
+        self.welcome_logoff_link = page.locator(
+            "#customer_menu_top ul.sub_menu a[href*='account/logout']")  # "Not <name>? Logoff"
 
         # Top menu (#main_menu_top appears once; the second menu is in #categorymenu)
         self.specials_link = page.locator("#main_menu_top a.menu_specials")
         self.account_link = page.locator("#main_menu_top a.menu_account")
-        self.login_link = page.locator("#main_menu_top a.menu_login")
+        self.login_link = page.locator("#main_menu_top a.menu_login")  # logged out only
+        self.logout_link = page.locator("#main_menu_top a.menu_logout")  # logged in only
         self.check_order_link = page.locator("#main_menu_top a.menu_order")
         self.cart_link = page.locator("#main_menu_top li[data-id='menu_cart'] a")
         self.checkout_link = page.locator("#main_menu_top a.menu_checkout")
@@ -115,7 +120,8 @@ class BasePage:
         self.footer_shipping_link = page.locator(".footerlinks a[href*='content_id=4']")
         self.footer_contact_us_link = page.locator(".footerlinks a[href*='content/contact']")
         self.footer_site_map_link = page.locator(".footerlinks a[href*='content/sitemap']")
-        self.footer_login_link = page.locator(".footerlinks a[href*='account/login']")
+        self.footer_login_link = page.locator(".footerlinks a[href*='account/login']")  # logged out only
+        self.footer_logoff_link = page.locator(".footerlinks a[href*='account/logout']")  # logged in only
         self.facebook_link = page.locator("footer a.facebook")
         self.twitter_link = page.locator("footer a.twitter")
         self.linkedin_link = page.locator("footer a.linkedin")
@@ -172,6 +178,13 @@ class BasePage:
     def click_login_or_register(self) -> None:
         self.login_or_register_link.click()
 
+    def click_welcome_link(self) -> None:
+        self.welcome_link.click()
+
+    def click_logoff_from_welcome_menu(self) -> None:
+        self.welcome_link.hover()
+        self.welcome_logoff_link.click()
+
     def click_specials(self) -> None:
         self.specials_link.click()
 
@@ -181,6 +194,10 @@ class BasePage:
     def click_login_from_account_menu(self) -> None:
         self.account_link.hover()
         self.login_link.click()
+
+    def click_logout_from_account_menu(self) -> None:
+        self.account_link.hover()
+        self.logout_link.click()
 
     def click_check_your_order(self) -> None:
         self.account_link.hover()
@@ -258,6 +275,9 @@ class BasePage:
     # Readings
     # --------
 
+    def welcome_message_text(self) -> str:
+        return self.welcome_text.inner_text().strip()
+
     def cart_items_count(self) -> int:
         return int(self.cart_count.inner_text().strip())
 
@@ -280,6 +300,18 @@ class BasePage:
     # -----------------
     # Helper assertions
     # -----------------
+
+    def expect_logged_in(self) -> None:
+        expect(self.welcome_link).to_be_visible()
+        expect(self.logout_link).to_have_count(1)
+        expect(self.login_link).to_have_count(0)
+
+    def expect_logged_out(self) -> None:
+        expect(self.login_or_register_link).to_be_visible()
+        expect(self.welcome_link).to_have_count(0)
+
+    def expect_welcome_message(self, first_name: str) -> None:
+        expect(self.welcome_text).to_have_text(f"Welcome back {first_name}")
 
     def expect_cart_count(self, count: int) -> None:
         expect(self.cart_count).to_have_text(str(count))
