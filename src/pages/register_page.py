@@ -1,6 +1,8 @@
+from uuid import uuid4
+
 from playwright.sync_api import Locator, Page, expect
 
-from base_page import BasePage
+from src.pages.base_page import BasePage
 
 
 class RegisterPage(BasePage):
@@ -14,6 +16,11 @@ class RegisterPage(BasePage):
     # ==========================================================================================================
 
     PATH = "/index.php?rt=account/create"
+
+    # Generated test data: the prefix makes test accounts easy to find (and clean up) in the admin panel
+    TEST_DATA_PREFIX = "autotest"
+    # Reserved domain (RFC 2606) never belongs to a real user and nothing is delivered there
+    EMAIL_DOMAIN = "example.com"
 
     # Form fields: name ➤ id suffix (the id is always AccountFrm_<name>)
     FIELDS = (
@@ -135,6 +142,25 @@ class RegisterPage(BasePage):
 
     def goto(self, path: str = PATH):
         super().goto(path)
+
+    # ---------
+    # Test data
+    # ---------
+
+    @classmethod
+    def generate_email(cls) -> str:
+        """Unique e-mail on a reserved domain, e.g. autotest_a3f9c27d41be@example.com."""
+        return f"{cls.TEST_DATA_PREFIX}_{uuid4().hex[:12]}@{cls.EMAIL_DOMAIN}"
+
+    @classmethod
+    def generate_login_name(cls) -> str:
+        """Unique alphanumeric login (the form allows 5-64 chars, no separators), e.g. autotesta3f9c27d41be."""
+        return f"{cls.TEST_DATA_PREFIX}{uuid4().hex[:12]}"
+
+    @staticmethod
+    def generate_password() -> str:
+        """Random password within the 4-20 chars limit, with upper/lower case, digits and a special char."""
+        return f"Pw{uuid4().hex[:12]}!"
 
     # ----------------
     # Dynamic locators
