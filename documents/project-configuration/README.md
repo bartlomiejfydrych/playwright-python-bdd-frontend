@@ -19,6 +19,7 @@
    - [pytest-playwright](#pytest-playwright)
    - [pytest-bdd](#pytest-bdd)
    - [playwright install](#playwright-install)
+   - [Faker](#faker)
    - [allure-pytest-bdd](#allure-pytest-bdd)
 
 ---
@@ -160,6 +161,7 @@ Dodaj `venv/` do `.gitignore`.
      np. `--headed`, `--browser firefox`, `--base-url`, `--tracing`, `--video`.
    - **pytest-bdd** – To obsługa plików `.feature` (Gherkin) w pytest. Kroki możesz pisać jako zwykłe funkcje i wstrzykiwać do nich fixture `page` z Playwrighta.
    - **playwright install** – Pobiera binaria przeglądarek (Chromium, Firefox, WebKit). To osobny krok, bo `pip` ich nie instaluje. Możesz też podać konkretną: `playwright install chromium`.
+   - **Faker** – Generator danych testowych (`pip install Faker`)
    - **allure-pytest-bdd** 🔴TODO: Zainstalować w połowie lub na koniec projektu i opisać
 8. Po instalacji generujemy plik z zależnościami (To taki odpowiednik `pom.xml` z Javy):
    ```bash
@@ -1852,6 +1854,347 @@ pytest
 > **`playwright install`** – polecenie CLI Playwright służące do pobrania i instalacji przeglądarek używanych przez
 > Playwright (`Chromium`, `Firefox`, `WebKit`). Nie jest biblioteką ani pluginem, lecz krokiem konfiguracji środowiska
 > potrzebnym do wykonywania testów Playwright.
+
+---
+
+## 📕Faker
+
+**Faker** to biblioteka Pythona służąca do **generowania realistycznych danych testowych**. Pozwala automatycznie
+tworzyć losowe imiona, nazwiska, adresy, numery telefonów, adresy e-mail, daty, numery kart płatniczych, nazwy firm
+i wiele innych typów danych.
+
+Jest bardzo popularna w testach automatycznych, seedowaniu baz danych oraz tworzeniu danych testowych do API.
+
+### Czym jest Faker?
+
+Zamiast ręcznie tworzyć dane:
+
+```python
+user = {
+    "name": "Jan Kowalski",
+    "email": "jan.kowalski@test.pl"
+}
+```
+
+możesz generować je automatycznie:
+
+```python
+from faker import Faker
+
+fake = Faker()
+
+user = {
+    "name": fake.name(),
+    "email": fake.email()
+}
+```
+
+Przy każdym uruchomieniu otrzymasz nowe, realistyczne dane.
+
+### Instalacja
+
+```bash
+pip install faker
+```
+
+### Podstawowe użycie
+
+```python
+from faker import Faker
+
+fake = Faker()
+
+print(fake.name())
+print(fake.email())
+print(fake.phone_number())
+```
+
+Przykładowy wynik:
+
+```text
+Anna Nowak
+anna.nowak@example.org
++48 601 123 456
+```
+
+### Najczęściej używane generatory
+
+#### Osoby
+
+```python
+fake.first_name()
+fake.last_name()
+fake.name()
+```
+
+Przykład:
+
+```text
+Jan
+Kowalski
+Jan Kowalski
+```
+
+#### E-mail
+
+```python
+fake.email()
+fake.company_email()
+```
+
+Przykład:
+
+```text
+jan.nowak@example.com
+```
+
+#### Adres
+
+```python
+fake.street_address()
+fake.city()
+fake.postcode()
+fake.address()
+```
+
+Przykład:
+
+```text
+ul. Lipowa 15
+Gdańsk
+80-001
+```
+
+#### Firma
+
+```python
+fake.company()
+fake.job()
+```
+
+Przykład:
+
+```text
+ABC Solutions Sp. z o.o.
+QA Engineer
+```
+
+#### Internet
+
+```python
+fake.user_name()
+fake.password()
+fake.url()
+fake.domain_name()
+```
+
+#### Daty
+
+```python
+fake.date()
+fake.date_of_birth()
+fake.future_date()
+fake.past_date()
+```
+
+#### Liczby
+
+```python
+fake.random_int()
+fake.pyfloat()
+```
+
+### Lokalizacja (locale)
+
+Faker obsługuje wiele języków i krajów.
+
+Polskie dane:
+
+```python
+from faker import Faker
+
+fake = Faker("pl_PL")
+```
+
+Przykład:
+
+```python
+print(fake.name())
+print(fake.address())
+```
+
+Wynik:
+
+```text
+Michał Wiśniewski
+
+ul. Długa 5
+80-200 Gdańsk
+```
+
+Inne locale:
+
+```python
+Faker("en_US")
+Faker("de_DE")
+Faker("fr_FR")
+```
+
+### Powtarzalne dane (seed)
+
+Jeżeli chcesz generować zawsze te same dane:
+
+```python
+from faker import Faker
+
+Faker.seed(123)
+
+fake = Faker()
+
+print(fake.name())
+```
+
+Przy każdym uruchomieniu wynik będzie identyczny.
+
+Przydatne w testach regresyjnych.
+
+### Generowanie wielu rekordów
+
+```python
+for _ in range(5):
+    print(
+        fake.name(),
+        fake.email()
+    )
+```
+
+Przykład:
+
+```text
+Jan Kowalski jan@test.pl
+Anna Nowak anna@test.pl
+Piotr Zieliński piotr@test.pl
+...
+```
+
+### Integracja z pytest
+
+Bardzo częsty scenariusz:
+
+```python
+from faker import Faker
+
+fake = Faker()
+
+def test_create_user():
+
+    payload = {
+        "name": fake.name(),
+        "email": fake.email()
+    }
+
+    response = client.post(
+        "/users",
+        json=payload
+    )
+
+    assert response.status_code == 201
+```
+
+Dzięki temu każdy test używa nowych danych.
+
+### Fixtures w pytest
+
+```python
+import pytest
+from faker import Faker
+
+@pytest.fixture
+def fake():
+    return Faker()
+```
+
+Użycie:
+
+```python
+def test_user(fake):
+
+    email = fake.email()
+
+    assert "@" in email
+```
+
+### Typowe zastosowania w QA
+
+#### 1. Tworzenie użytkowników testowych
+
+```python
+payload = {
+    "name": fake.name(),
+    "email": fake.email()
+}
+```
+
+#### 2. Testowanie walidacji formularzy
+
+```python
+fake.email()
+fake.phone_number()
+fake.postcode()
+```
+
+#### 3. Przygotowanie danych do API
+
+```python
+response = requests.post(
+    "/users",
+    json={
+        "name": fake.name(),
+        "email": fake.email()
+    }
+)
+```
+
+#### 4. Seedowanie bazy danych
+
+```python
+for _ in range(1000):
+    create_user(
+        name=fake.name(),
+        email=fake.email()
+    )
+```
+
+#### 5. Testy obciążeniowe
+
+Generowanie dużej liczby unikalnych rekordów:
+
+```python
+fake.uuid4()
+fake.email()
+fake.user_name()
+```
+
+### Zalety
+
+* bardzo szybkie generowanie danych,
+* setki gotowych typów danych,
+* obsługa wielu krajów i języków,
+* łatwa integracja z pytest,
+* możliwość generowania realistycznych danych,
+* możliwość uzyskania powtarzalnych wyników przez seed.
+
+### Ograniczenia
+
+* dane są realistyczne, ale fikcyjne,
+* wygenerowane wartości nie zawsze spełniają wymagania konkretnego systemu,
+* czasami trzeba tworzyć własne generatory dla niestandardowych formatów danych.
+
+### Krótka definicja do notatek
+
+**Faker** – biblioteka Pythona służąca do generowania losowych, realistycznych danych testowych, takich jak imiona,
+nazwiska, adresy, e-maile, numery telefonów, daty czy dane firmowe. Jest powszechnie wykorzystywana w automatyzacji
+testów, przygotowywaniu danych testowych oraz seedowaniu baz danych.
 
 ---
 
