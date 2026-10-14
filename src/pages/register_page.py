@@ -212,7 +212,12 @@ class RegisterPage(BasePage):
         self.select_region(region)
 
     def select_country(self, country: str) -> None:
-        self.country_select.select_option(label=country)
+        # Changing the country reloads the region list via AJAX (common/zone) and resets the selected region.
+        # Wait for that reload (and for the one done on page load), otherwise the region chosen afterwards
+        # can be wiped and the form is sent with "Please select a region / state!"
+        with self.page.expect_response(lambda response: "rt=common/zone" in response.url):
+            self.country_select.select_option(label=country)
+        self.page.wait_for_load_state("networkidle")
 
     def select_region(self, region: str) -> None:
         # Region list is reloaded after country change – select_option waits until option appears
