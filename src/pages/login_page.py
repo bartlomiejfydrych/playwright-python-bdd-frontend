@@ -57,6 +57,7 @@ class LoginPage(BasePage):
         self.login_name_input = page.locator("#loginFrm_loginname")
         self.password_input = page.locator("#loginFrm_password")
         self.login_button = page.locator("#loginFrm button[title='Login']")
+        self.login_csrf_input = page.locator("#loginFrm input[name='csrftoken']")
         self.forgot_password_link = page.locator("a[href*='forgotten/password']")
         self.forgot_login_link = page.locator("a[href*='forgotten/loginname']")
 
@@ -101,6 +102,11 @@ class LoginPage(BasePage):
         self.fill_login_name(login_name)
         self.fill_password(password)
         self.click_login()
+
+    def login_with_enter(self, login_name: str, password: str) -> None:
+        self.fill_login_name(login_name)
+        self.fill_password(password)
+        self.password_input.press("Enter")
 
     # ---------------------
     # Actions: Registration
@@ -156,6 +162,9 @@ class LoginPage(BasePage):
 
     def expect_error_visible(self) -> None:
         expect(self.error_alert.first).to_be_visible()
+
+    def expect_error_contains(self, text: str) -> None:
+        expect(self.error_alert.first).to_contain_text(text)
 
     # endregion
     # ==========================================================================================================
