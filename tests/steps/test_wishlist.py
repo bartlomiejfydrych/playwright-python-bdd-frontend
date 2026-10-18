@@ -1,3 +1,5 @@
+import warnings
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -13,197 +15,235 @@ from src.pages.product_page import ProductPage
 scenarios(str(Path(__file__).resolve().parents[1] / "features" / "wishlist.feature"))
 
 
+# ==========================================================================================================
+# region FIXTURES
+# ==========================================================================================================
+
 @pytest.fixture
-def wishlist_page(logged_in_page: Page) -> Page:
-    """A page with the authenticated storage state, isolated per test."""
+def logged_in_home_page(logged_in_page: Page) -> Page:
+    """A logged-in page (authenticated storage state) opened on the home page."""
     logged_in_page.goto("/")
     return logged_in_page
 
 
 @pytest.fixture
-def selected_wishlist_products(wishlist_page: Page) -> list[str]:
-    """Track only products created by this scenario and remove them at teardown."""
+def home_page(logged_in_home_page: Page) -> HomePage:
+    return HomePage(logged_in_home_page)
+
+
+@pytest.fixture
+def product_page(logged_in_home_page: Page) -> ProductPage:
+    return ProductPage(logged_in_home_page)
+
+
+@pytest.fixture
+def account_page(logged_in_home_page: Page) -> AccountDashboardPage:
+    return AccountDashboardPage(logged_in_home_page)
+
+
+@pytest.fixture
+def wish_list_page(logged_in_home_page: Page) -> AccountMyWishListPage:
+    return AccountMyWishListPage(logged_in_home_page)
+
+
+@pytest.fixture
+def cart_page(logged_in_home_page: Page) -> CartPage:
+    return CartPage(logged_in_home_page)
+
+
+@pytest.fixture
+def selected_wishlist_products(
+        wish_list_page: AccountMyWishListPage, cart_page: CartPage
+) -> Iterator[list[str]]:
+    """
+    Names of the products chosen by the scenario (filled in by the "adds the first 3 featured products" step).
+
+    NOTE FOR ME: Po teście zawsze czyścimy wishlistę i koszyk (konto jest dedykowane do testów), żeby kolejny
+    przebieg nie zaczynał z brudnym stanem. Błąd sprzątania nie może zamaskować błędu testu, więc zamiast
+    wyjątku jest ostrzeżenie widoczne w podsumowaniu pytesta.
+    """
     selected: list[str] = []
     yield selected
 
-    # Cleanup is best-effort so it does not hide the original assertion failure.
-    # The scenario requires an initially empty wishlist/cart, so these are test-owned items.
     try:
-        cart = CartPage(wishlist_page)
-        cart.open()
-        for name in selected:
-            if cart.cart_row(name).count():
-                cart.remove_product(name)
+        cart_page.open()
+        cart_page.remove_all_products()
 
-        wish_list = AccountMyWishListPage(wishlist_page)
-        wishlist_page.goto("/index.php?rt=account/wishlist")
-        for name in selected:
-            if wish_list.row(name).count():
-                wish_list.remove_from_wish_list(name)
-                wish_list.expect_product_not_listed(name)
-        # Ensure the final state is empty before closing the context.
-        wish_list.expect_wish_list_empty()
+        wish_list_page.open()
+        wish_list_page.remove_all_products()
+        wish_list_page.expect_wish_list_empty()
     except Exception as exc:  # noqa: BLE001 - teardown must not mask a test failure
-        print(f"[WARNING] Wish-list test cleanup was incomplete: {exc}")
+        warnings.warn(f"Wish-list test cleanup was incomplete: {exc}", stacklevel=2)
 
+
+# endregion
+# ==========================================================================================================
+
+# ==========================================================================================================
+# region GIVEN
+# ==========================================================================================================
 
 @given("the customer is logged in and opens the home page")
-def customer_is_logged_in(wishlist_page: Page) -> None:
-    HomePage(wishlist_page).expect_logged_in()
-    HomePage(wishlist_page).expect_loaded()
+def customer_is_logged_in(home_page: HomePage) -> None:
+    home_page.expect_logged_in()
+    home_page.expect_loaded()
 
 
 @given("the wish list and shopping cart are empty")
-def wish_list_and_cart_are_empty(wishlist_page: Page) -> None:
-    wish_list = AccountMyWishListPage(wishlist_page)
-    wishlist_page.goto("/index.php?rt=account/wishlist")
-    if wish_list.rows.count():
-        pytest.fail(
-            "Precondition failed: the account's wish list is not empty. "
-            "The test will not delete products that may belong to another test."
-        )
-    wish_list.expect_wish_list_empty()
+def wish_list_and_cart_are_empty(
+        wish_list_page: AccountMyWishListPage,
+        cart_page: CartPage,
+        account_page: AccountDashboardPage,
+        home_page: HomePage,
+) -> None:
+    # NOTE FOR ME: Konto jest dedykowane do testów, więc zamiast padać na brudnym stanie (po przerwanym
+    # przebiegu) czyścimy go na starcie. Nie uruchamiaj tych testów równolegle na tym samym koncie.
+    wish_list_page.open()
+    wish_list_page.remove_all_products()
+    wish_list_page.expect_wish_list_empty()
 
-    account = AccountDashboardPage(wishlist_page)
-    wishlist_page.goto("/index.php?rt=account/account")
-    account.expect_loaded()
-    account.expect_quick_link_badge("My wish list", "0")
+    cart_page.open()
+    cart_page.remove_all_products()
+    cart_page.expect_empty_cart()
 
-    cart = CartPage(wishlist_page)
-    cart.open()
-    cart.expect_empty_cart()
-    HomePage(wishlist_page).open()
+    account_page.open()
+    account_page.expect_loaded()
+    account_page.expect_quick_link_badge("My wish list", "0")
 
+    home_page.open()
+
+
+# endregion
+# ==========================================================================================================
+
+# ==========================================================================================================
+# region WHEN
+# ==========================================================================================================
 
 @when("the customer adds the first 3 featured products to the wish list")
 def add_first_three_products(
-        wishlist_page: Page, selected_wishlist_products: list[str]
+        home_page: HomePage,
+        product_page: ProductPage,
+        selected_wishlist_products: list[str],
 ) -> None:
-    home = HomePage(wishlist_page)
-    home.open()
-    names = home.product_names_in("featured")[:3]
+    home_page.open()
+    names = home_page.product_names_in("featured")[:3]
     assert len(names) == 3, f"Expected at least 3 featured products, found: {names}"
     assert len(set(names)) == 3, f"Featured product names are not unique: {names}"
     selected_wishlist_products.extend(names)
 
-    product_page = ProductPage(wishlist_page)
     for name in names:
-        home.open()
-        home.open_product("featured", name)
+        home_page.open()
+        home_page.open_product("featured", name)
         product_page.expect_product_name(name)
         product_page.add_to_wish_list()
+        product_page.expect_added_to_wish_list()
 
 
-@then(parsers.parse("the wish list counter should be {count:d}"))
-def wish_list_counter_is(wishlist_page: Page, count: int) -> None:
-    account = AccountDashboardPage(wishlist_page)
-    wishlist_page.goto("/index.php?rt=account/account")
-    account.expect_loaded()
-    account.expect_quick_link_badge("My wish list", str(count))
+@when("the customer goes to My Account")
+def go_to_my_account(account_page: AccountDashboardPage) -> None:
+    account_page.open()
+    account_page.expect_loaded()
 
 
 @when("the customer opens the wish list")
-def open_wish_list(wishlist_page: Page) -> None:
-    AccountDashboardPage(wishlist_page).click_quick_link("My wish list")
-    AccountMyWishListPage(wishlist_page).expect_loaded()
-
-
-@then(parsers.parse("the wish list should contain the {count:d} selected products"))
-def wish_list_contains_selected_products(
-        wishlist_page: Page, selected_wishlist_products: list[str], count: int
+def open_wish_list(
+        account_page: AccountDashboardPage, wish_list_page: AccountMyWishListPage
 ) -> None:
-    wish_list = AccountMyWishListPage(wishlist_page)
-    expected = selected_wishlist_products[:count] if count == 3 else selected_wishlist_products[1:]
-    wish_list.expect_products_count(count)
-    assert set(wish_list.product_names()) == set(expected), (
-        f"Expected wish-list products {expected}, got {wish_list.product_names()}"
-    )
-    for name in expected:
-        wish_list.expect_product_listed(name)
+    account_page.click_quick_link("My wish list")
+    wish_list_page.expect_loaded()
 
 
 @when("the customer removes the first selected product from the wish list")
-def remove_first_product(wishlist_page: Page, selected_wishlist_products: list[str]) -> None:
-    AccountMyWishListPage(wishlist_page).remove_from_wish_list(selected_wishlist_products[0])
-
-
-@then("the first selected product should not be in the wish list")
-def first_product_is_not_in_wish_list(
-        wishlist_page: Page, selected_wishlist_products: list[str]
+def remove_first_product(
+        wish_list_page: AccountMyWishListPage, selected_wishlist_products: list[str]
 ) -> None:
-    AccountMyWishListPage(wishlist_page).expect_product_not_listed(selected_wishlist_products[0])
-
-
-@then("the other 2 selected products should remain in the wish list")
-def other_two_products_remain(
-        wishlist_page: Page, selected_wishlist_products: list[str]
-) -> None:
-    wish_list = AccountMyWishListPage(wishlist_page)
-    expected = selected_wishlist_products[1:]
-    wish_list.expect_products_count(2)
-    assert set(wish_list.product_names()) == set(expected)
+    wish_list_page.remove_from_wish_list(selected_wishlist_products[0])
 
 
 @when("the customer adds the second selected product to the shopping cart from the wish list")
 def add_second_product_to_cart(
-        wishlist_page: Page, selected_wishlist_products: list[str]
+        wish_list_page: AccountMyWishListPage, selected_wishlist_products: list[str]
 ) -> None:
-    AccountMyWishListPage(wishlist_page).add_to_cart(selected_wishlist_products[1])
-
-
-@then("the shopping cart page should be displayed")
-def shopping_cart_page_is_displayed(wishlist_page: Page) -> None:
-    CartPage(wishlist_page).expect_loaded()
-
-
-@then("the shopping cart should contain the second selected product")
-def shopping_cart_contains_second_product(
-        wishlist_page: Page, selected_wishlist_products: list[str]
-) -> None:
-    cart = CartPage(wishlist_page)
-    cart.expect_product_in_cart(selected_wishlist_products[1])
-    assert selected_wishlist_products[1] in cart.product_names()
+    wish_list_page.add_to_cart(selected_wishlist_products[1])
 
 
 @when("the customer removes the second selected product from the shopping cart")
 def remove_second_product_from_cart(
-        wishlist_page: Page, selected_wishlist_products: list[str]
+        cart_page: CartPage, selected_wishlist_products: list[str]
 ) -> None:
-    cart = CartPage(wishlist_page)
-    cart.remove_product(selected_wishlist_products[1])
-    cart.expect_product_not_in_cart(selected_wishlist_products[1])
+    cart_page.remove_product(selected_wishlist_products[1])
+    cart_page.expect_product_not_in_cart(selected_wishlist_products[1])
 
 
-@when("the customer returns to My Account")
-def return_to_my_account(wishlist_page: Page) -> None:
-    AccountDashboardPage(wishlist_page).goto("/index.php?rt=account/account")
-    AccountDashboardPage(wishlist_page).expect_loaded()
-
-
-@then("the wish list should contain the 2 remaining selected products")
-def two_remaining_products_are_listed(
-        wishlist_page: Page, selected_wishlist_products: list[str]
+@when(parsers.parse("the customer removes the {count:d} remaining selected products from the wish list"))
+def remove_remaining_products(
+        wish_list_page: AccountMyWishListPage, selected_wishlist_products: list[str], count: int
 ) -> None:
-    wish_list = AccountMyWishListPage(wishlist_page)
-    expected = selected_wishlist_products[1:]
-    wish_list.expect_loaded()
-    wish_list.expect_products_count(2)
-    assert set(wish_list.product_names()) == set(expected), (
-        f"Expected remaining products {expected}, got {wish_list.product_names()}"
+    remaining = selected_wishlist_products[1:]
+    assert len(remaining) == count, f"Expected {count} remaining products, scenario tracks: {remaining}"
+    for name in remaining:
+        wish_list_page.remove_from_wish_list(name)
+        wish_list_page.expect_product_not_listed(name)
+
+
+# endregion
+# ==========================================================================================================
+
+# ==========================================================================================================
+# region THEN
+# ==========================================================================================================
+
+@then(parsers.parse("the wish list counter should be {count:d}"))
+def wish_list_counter_is(account_page: AccountDashboardPage, count: int) -> None:
+    account_page.expect_quick_link_badge("My wish list", str(count))
+
+
+@then("the wish list should contain all 3 selected products")
+def wish_list_contains_all_selected_products(
+        wish_list_page: AccountMyWishListPage, selected_wishlist_products: list[str]
+) -> None:
+    expected = selected_wishlist_products
+    wish_list_page.expect_products_count(len(expected))
+    assert sorted(wish_list_page.product_names()) == sorted(expected), (
+        f"Expected wish-list products {expected}, got {wish_list_page.product_names()}"
     )
 
 
-@when("the customer cleans up the selected wish list products")
-def clean_up_selected_products(
-        wishlist_page: Page, selected_wishlist_products: list[str]
+@then("the wish list should contain the 2 remaining selected products")
+def wish_list_contains_remaining_products(
+        wish_list_page: AccountMyWishListPage, selected_wishlist_products: list[str]
 ) -> None:
-    wish_list = AccountMyWishListPage(wishlist_page)
-    for name in selected_wishlist_products[1:]:
-        if wish_list.row(name).count():
-            wish_list.remove_from_wish_list(name)
-            wish_list.expect_product_not_listed(name)
+    expected = selected_wishlist_products[1:]
+    wish_list_page.expect_products_count(len(expected))
+    assert sorted(wish_list_page.product_names()) == sorted(expected), (
+        f"Expected remaining products {expected}, got {wish_list_page.product_names()}"
+    )
+
+
+@then("the first selected product should not be in the wish list")
+def first_product_is_not_in_wish_list(
+        wish_list_page: AccountMyWishListPage, selected_wishlist_products: list[str]
+) -> None:
+    wish_list_page.expect_product_not_listed(selected_wishlist_products[0])
+
+
+@then("the shopping cart page should be displayed")
+def shopping_cart_page_is_displayed(cart_page: CartPage) -> None:
+    cart_page.expect_loaded()
+
+
+@then("the shopping cart should contain the second selected product")
+def shopping_cart_contains_second_product(
+        cart_page: CartPage, selected_wishlist_products: list[str]
+) -> None:
+    cart_page.expect_product_in_cart(selected_wishlist_products[1])
+    cart_page.expect_products_count(1)
 
 
 @then("the wish list should be empty")
-def wish_list_is_empty(wishlist_page: Page) -> None:
-    AccountMyWishListPage(wishlist_page).expect_wish_list_empty()
+def wish_list_is_empty(wish_list_page: AccountMyWishListPage) -> None:
+    wish_list_page.expect_wish_list_empty()
+
+# endregion
+# ==========================================================================================================

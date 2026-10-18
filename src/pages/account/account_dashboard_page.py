@@ -16,6 +16,7 @@ class AccountDashboardPage(AccountBasePage):
     # region VARIABLES
     # ==========================================================================================================
 
+    PATH = "/index.php?rt=account/account"
     URL_PATTERN = re.compile(r"rt=account/account")
 
     HEADING_TEXT = "My Account"
@@ -73,6 +74,13 @@ class AccountDashboardPage(AccountBasePage):
     # ==========================================================================================================
     # region METHODS
     # ==========================================================================================================
+
+    # ----------
+    # Navigation
+    # ----------
+
+    def open(self) -> None:
+        self.goto(self.PATH)
 
     # ----------------
     # Dynamic locators

@@ -1,3 +1,5 @@
+import re
+
 from playwright.sync_api import Locator, Page, expect
 
 from src.pages.base_page import BasePage
@@ -15,6 +17,7 @@ class CartPage(BasePage):
     # ==========================================================================================================
 
     PATH = "/index.php?rt=checkout/cart"
+    URL_PATTERN = re.compile(r"rt=checkout/cart")
     TITLE = "Shopping Cart"
     EMPTY_CART_MESSAGE = "Your shopping cart is empty!"
 
@@ -98,7 +101,10 @@ class CartPage(BasePage):
     # ----------------
 
     def cart_row(self, product_name: str) -> Locator:
-        return self.cart_rows.filter(has_text=product_name)
+        # Exact match on the product name link (has_text would also match a longer name containing this one)
+        return self.cart_rows.filter(
+            has=self.page.get_by_role("link", name=product_name, exact=True)
+        )
 
     def quantity_input(self, product_name: str) -> Locator:
         return self.cart_row(product_name).locator("input[name^='quantity']")
@@ -140,6 +146,12 @@ class CartPage(BasePage):
 
     def remove_product(self, product_name: str) -> None:
         self.remove_link(product_name).click()
+
+    def remove_all_products(self) -> None:
+        # Every removal reloads the cart page, so wait for the row count to drop before the next click
+        while (count := self.cart_rows.count()) > 0:
+            self.remove_links.first.click()
+            expect(self.cart_rows).to_have_count(count - 1)
 
     def open_product(self, product_name: str) -> None:
         self.product_link(product_name).click()
@@ -246,6 +258,7 @@ class CartPage(BasePage):
     # -----------------
 
     def expect_loaded(self) -> None:
+        expect(self.page).to_have_url(self.URL_PATTERN)
         expect(self.page).to_have_title(self.TITLE)
         expect(self.heading).to_have_text(self.TITLE)
 

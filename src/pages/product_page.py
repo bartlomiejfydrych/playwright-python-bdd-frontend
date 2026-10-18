@@ -77,7 +77,6 @@ class ProductPage(BasePage):
         # The store toggles these links after the wishlist AJAX request succeeds.
         self.add_to_wish_list_button = page.locator("a.wishlist_add")
         self.remove_from_wish_list_button = page.locator("a.wishlist_remove")
-        self.wish_list_alert = page.locator(".wishlist .alert-danger")
         self.print_button = page.locator("#product a.productprint")
         # Product options (selects/radios/checkboxes) - not present on this product, selector taken from the page's JS
         self.option_fields = page.locator("#product select[name^='option'], #product input[name^='option']")
@@ -164,8 +163,6 @@ class ProductPage(BasePage):
 
     def add_to_wish_list(self) -> None:
         self.add_to_wish_list_button.click()
-        expect(self.remove_from_wish_list_button).to_be_visible()
-        expect(self.wish_list_alert).to_have_count(0)
 
     def click_print(self) -> None:
         self.print_button.click()
@@ -303,6 +300,11 @@ class ProductPage(BasePage):
 
     def expect_model(self, model: str) -> None:
         expect(self.model_info).to_contain_text(model)
+
+    def expect_added_to_wish_list(self) -> None:
+        # The "add" link is replaced by the "remove" one only after the wishlist AJAX request succeeds
+        expect(self.remove_from_wish_list_button).to_be_visible()
+        expect(self.add_to_wish_list_button).to_be_hidden()
 
     def expect_tabs_visible(self) -> None:
         for name in self.TABS:

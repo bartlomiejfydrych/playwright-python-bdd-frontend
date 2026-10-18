@@ -16,6 +16,7 @@ class AccountMyWishListPage(AccountBasePage):
     # region VARIABLES
     # ==========================================================================================================
 
+    PATH = "/index.php?rt=account/wishlist"
     URL_PATTERN = re.compile(r"rt=account/wishlist")
 
     HEADING_TEXT = "My wish list"
@@ -23,8 +24,6 @@ class AccountMyWishListPage(AccountBasePage):
     EMPTY_TEXT = "Wish list is empty"
 
     COLUMNS = ("Image", "Name", "Model", "Unit Price", "Added to wish list", "Actions")
-
-    EMPTY_TEXT = "Wish list is empty"
 
     # endregion
     # ==========================================================================================================
@@ -43,16 +42,13 @@ class AccountMyWishListPage(AccountBasePage):
         # Breadcrumbs: Home > Account > My wish list (the last item is specific to this page)
         self.breadcrumb_wish_list_link = page.locator("section.breadcrumbs ul.breadcrumb a[href*='account/wishlist']")
 
-        # Empty state: the table is replaced by plain text (only Continue Shopping is left)
-        self.empty_message = page.locator(".contentpanel", has_text=self.EMPTY_TEXT)
-
         # Wish list table (header row has no class, product rows have class wishlist_<product_id>)
         self.table = page.locator(".wishlist table")
         self.column_headers = page.locator(".wishlist table th")
         self.rows = page.locator(".wishlist table tr[class^='wishlist_']")
         self.product_name_links = page.locator(".wishlist table tr[class^='wishlist_'] td:nth-child(2) a")
 
-        # Empty state: a message instead of the table
+        # Empty state: the table is replaced by plain text (only Continue Shopping is left)
         self.empty_message = page.locator(".contentpanel").get_by_text(self.EMPTY_TEXT)
 
         # Buttons (Continue Shopping is present in both states, View Cart only when the list is not empty)
@@ -65,6 +61,13 @@ class AccountMyWishListPage(AccountBasePage):
     # ==========================================================================================================
     # region METHODS
     # ==========================================================================================================
+
+    # ----------
+    # Navigation
+    # ----------
+
+    def open(self) -> None:
+        self.goto(self.PATH)
 
     # ----------------
     # Dynamic locators
@@ -110,6 +113,12 @@ class AccountMyWishListPage(AccountBasePage):
         # Wiersz znika bez przeładowania strony (JS), więc po akcji używaj asercji z auto-wait
         self.row_remove_button(product_name).click()
 
+    def remove_all_products(self) -> None:
+        # Rows disappear without a page reload, so wait for the row count to drop before the next click
+        while (count := self.rows.count()) > 0:
+            self.rows.first.locator("a.btn-remove").click()
+            expect(self.rows).to_have_count(count - 1)
+
     def click_continue_shopping(self) -> None:
         self.continue_shopping_button.click()
 
@@ -152,10 +161,6 @@ class AccountMyWishListPage(AccountBasePage):
         self.expect_side_menu_selected("My wish list")
 
     def expect_wish_list_empty(self) -> None:
-        expect(self.empty_message).to_be_visible()
-        expect(self.rows).to_have_count(0)
-
-    def expect_empty(self) -> None:
         expect(self.empty_message).to_be_visible()
         expect(self.rows).to_have_count(0)
         expect(self.continue_shopping_button).to_be_visible()
