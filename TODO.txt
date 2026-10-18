@@ -1,8 +1,6 @@
 Lista rzeczy do zrobienia:
 
-– Zastanowić się jak testy miałyby się na nie autoryzować za pomocą API
-– Rozpisać `features` czyli przypadki testowe
-– Napisać pod `features` testy, czyli `steps`
+– Pisać `features` i `testy`
 – Po testach zakupu produktu dodać i sprawdzać:
   – `account_order_history_page.py`
   – `account_transaction_history_page.py`
