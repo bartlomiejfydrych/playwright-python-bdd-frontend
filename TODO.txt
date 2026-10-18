@@ -10,4 +10,5 @@ Lista rzeczy do zrobienia:
 – Dodać już projekt na Linkedin i do CV
 – Weryfikować testy aż do skutku
 – Dodać raport Allure
+– Usunąć feature i testy `home_page`
 – Zaktualizować główne README projektu
