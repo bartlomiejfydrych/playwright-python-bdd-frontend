@@ -69,6 +69,9 @@ class AccountMyWishListPage(AccountBasePage):
     def open(self) -> None:
         self.goto(self.PATH)
 
+    def reload(self) -> None:
+        self.page.reload()
+
     # ----------------
     # Dynamic locators
     # ----------------
@@ -115,9 +118,14 @@ class AccountMyWishListPage(AccountBasePage):
 
     def remove_all_products(self) -> None:
         # Rows disappear without a page reload, so wait for the row count to drop before the next click
+        removed_any = False
         while (count := self.rows.count()) > 0:
             self.rows.first.locator("a.btn-remove").click()
             expect(self.rows).to_have_count(count - 1)
+            removed_any = True
+        if removed_any:
+            # "Wish list is empty" is rendered only by the server, so reload to get the real empty state
+            self.reload()
 
     def click_continue_shopping(self) -> None:
         self.continue_shopping_button.click()
@@ -133,7 +141,7 @@ class AccountMyWishListPage(AccountBasePage):
         return self.rows.count()
 
     def product_names(self) -> list[str]:
-        return [t.strip() for t in self.product_name_links.all_inner_texts()]
+        return [t.strip() for t in self.product_name_links.all_text_contents()]
 
     def model_text(self, product_name: str) -> str:
         return self.row_model(product_name).inner_text().strip()
@@ -159,6 +167,13 @@ class AccountMyWishListPage(AccountBasePage):
         expect(self.page).to_have_url(self.URL_PATTERN)
         expect(self.heading).to_have_text(self.HEADING_TEXT)
         self.expect_side_menu_selected("My wish list")
+
+    def expect_wish_list_table_empty(self) -> None:
+        # Right after removing the last product (JS, no reload) only the table header row is left
+        # and the "Wish list is empty" message is not rendered yet
+        expect(self.table).to_be_visible()
+        expect(self.rows).to_have_count(0)
+        expect(self.empty_message).to_have_count(0)
 
     def expect_wish_list_empty(self) -> None:
         expect(self.empty_message).to_be_visible()

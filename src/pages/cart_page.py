@@ -213,7 +213,7 @@ class CartPage(BasePage):
         return self.cart_rows.count()
 
     def product_names(self) -> list[str]:
-        return [t.strip() for t in self.product_name_links.all_inner_texts()]
+        return [t.strip() for t in self.product_name_links.all_text_contents()]
 
     def model_of(self, product_name: str) -> str:
         return self.cart_row(product_name).locator("td:nth-child(3)").inner_text().strip()

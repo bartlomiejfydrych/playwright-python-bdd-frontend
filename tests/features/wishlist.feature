@@ -26,4 +26,6 @@ Feature: Product wish list
     When the customer opens the wish list
     Then the wish list should contain the 2 remaining selected products
     When the customer removes the 2 remaining selected products from the wish list
+    Then the wish list table should be empty
+    When the customer reloads the page
     Then the wish list should be empty

@@ -56,7 +56,8 @@ class HomePage(BasePage):
         # --------
 
         # All sections
-        self.product_tiles = page.locator(".thumbnails > div") # "prdocutname" is a typo in the store's HTML, not in our code :)
+        self.product_tiles = page.locator(
+            ".thumbnails > div")  # "prdocutname" is a typo in the store's HTML, not in our code :)
         self.product_names = page.locator("a.prdocutname")
 
         # ------
@@ -176,9 +177,10 @@ class HomePage(BasePage):
     # --------
 
     def product_names_in(self, key: str) -> list[str]:
+        # text_contents (not inner_texts): the store uppercases names with CSS, we need the real DOM text
         return [
             t.strip()
-            for t in self.section(key).locator("a.prdocutname").all_inner_texts()
+            for t in self.section(key).locator("a.prdocutname").all_text_contents()
         ]
 
     def promo_titles(self) -> list[str]:

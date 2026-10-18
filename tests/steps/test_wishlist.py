@@ -187,6 +187,11 @@ def remove_remaining_products(
         wish_list_page.expect_product_not_listed(name)
 
 
+@when("the customer reloads the page")
+def reload_page(wish_list_page: AccountMyWishListPage) -> None:
+    wish_list_page.reload()
+
+
 # endregion
 # ==========================================================================================================
 
@@ -239,6 +244,11 @@ def shopping_cart_contains_second_product(
 ) -> None:
     cart_page.expect_product_in_cart(selected_wishlist_products[1])
     cart_page.expect_products_count(1)
+
+
+@then("the wish list table should be empty")
+def wish_list_table_is_empty(wish_list_page: AccountMyWishListPage) -> None:
+    wish_list_page.expect_wish_list_table_empty()
 
 
 @then("the wish list should be empty")
