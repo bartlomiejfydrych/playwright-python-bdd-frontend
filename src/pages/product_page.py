@@ -74,6 +74,10 @@ class ProductPage(BasePage):
         self.total_price = page.locator("#product .total-price")
         self.product_id_input = page.locator("#product_product_id")
         self.add_to_cart_button = page.locator("#product ul.productpagecart a.cart")
+        # The store toggles these links after the wishlist AJAX request succeeds.
+        self.add_to_wish_list_button = page.locator("a.wishlist_add")
+        self.remove_from_wish_list_button = page.locator("a.wishlist_remove")
+        self.wish_list_alert = page.locator(".wishlist .alert-danger")
         self.print_button = page.locator("#product a.productprint")
         # Product options (selects/radios/checkboxes) - not present on this product, selector taken from the page's JS
         self.option_fields = page.locator("#product select[name^='option'], #product input[name^='option']")
@@ -157,6 +161,11 @@ class ProductPage(BasePage):
         if quantity is not None:
             self.set_quantity(quantity)
         self.add_to_cart_button.click()
+
+    def add_to_wish_list(self) -> None:
+        self.add_to_wish_list_button.click()
+        expect(self.remove_from_wish_list_button).to_be_visible()
+        expect(self.wish_list_alert).to_have_count(0)
 
     def click_print(self) -> None:
         self.print_button.click()
