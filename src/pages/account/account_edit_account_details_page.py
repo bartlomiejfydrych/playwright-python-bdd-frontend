@@ -43,6 +43,10 @@ class AccountEditAccountDetailsPage(AccountBasePage):
         self.breadcrumb_edit_information_link = page.locator(
             "section.breadcrumbs ul.breadcrumb a[href*='account/edit']")
 
+        # Alerts
+        self.error_alert = page.locator(".alert.alert-error, .alert.alert-danger")
+        self.success_alert = page.locator(".alert.alert-success")
+
         # Form
         self.form = page.locator("#AccountFrm")
         self.personal_details_heading = page.locator("#AccountFrm h4.heading4")
