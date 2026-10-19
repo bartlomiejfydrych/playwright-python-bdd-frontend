@@ -10,20 +10,32 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     Account details form "My Account Information" (rt=account/edit): read-only login name
     and editable first name, last name, e-mail, telephone and fax.
     Breadcrumbs, heading and the "My Account" side menu come from AccountBasePage.
+    The success alert after saving is shown on the account dashboard (see AccountDashboardPage).
     """
 
     # ==========================================================================================================
     # region VARIABLES
     # ==========================================================================================================
 
+    PATH = "/index.php?rt=account/edit"
     URL_PATTERN = re.compile(r"rt=account/edit")
 
     HEADING_TEXT = "My Account Information"
     PERSONAL_DETAILS_TEXT = "Your Personal Details"
 
-    # Form fields: name ➤ input name (id = AccountFrm_<name>)
+    # Main alert after a failed validation (shown above the form)
+    ERROR_ALERT_TEXT = "Oops, there is an error with information provided!"
+
+    # Form fields: name ➤ input name (id = AccountFrm_<n>)
     FIELDS = ("firstname", "lastname", "email", "telephone", "fax")
     REQUIRED_FIELDS = ("firstname", "lastname", "email")
+
+    # Validation messages under the fields: field ➤ message
+    FIELD_ERROR_MESSAGES = {
+        "firstname": "First Name must be between 1 and 32 characters!",
+        "lastname": "Last Name must be between 1 and 32 characters!",
+        "email": "E-Mail Address does not appear to be valid!",
+    }
 
     # endregion
     # ==========================================================================================================
@@ -43,9 +55,8 @@ class AccountEditAccountDetailsPage(AccountBasePage):
         self.breadcrumb_edit_information_link = page.locator(
             "section.breadcrumbs ul.breadcrumb a[href*='account/edit']")
 
-        # Alerts
+        # Alerts (the error alert is shown above the form after a failed validation)
         self.error_alert = page.locator(".alert.alert-error, .alert.alert-danger")
-        self.success_alert = page.locator(".alert.alert-success")
 
         # Form
         self.form = page.locator("#AccountFrm")
@@ -71,6 +82,13 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     # region METHODS
     # ==========================================================================================================
 
+    # ----------
+    # Navigation
+    # ----------
+
+    def open(self) -> None:
+        self.goto(self.PATH)
+
     # ----------------
     # Dynamic locators
     # ----------------
@@ -90,6 +108,15 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     # ------------------
     # Actions: main part
     # ------------------
+
+    def set_first_name(self, value: str) -> None:
+        self.first_name_input.fill(value)
+
+    def set_last_name(self, value: str) -> None:
+        self.last_name_input.fill(value)
+
+    def set_email(self, value: str) -> None:
+        self.email_input.fill(value)
 
     def fill_form(
             self,
@@ -163,6 +190,11 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     def expect_field_value(self, field: str, value: str) -> None:
         expect(self.field_input(field)).to_have_value(value)
 
+    def expect_field_values(self, values: dict[str, str]) -> None:
+        # values: field name ➤ expected value (keys as in FIELDS)
+        for field, value in values.items():
+            self.expect_field_value(field, value)
+
     def expect_required_fields(self) -> None:
         for field in self.REQUIRED_FIELDS:
             expect(self.field_required_marker(field)).to_be_visible()
@@ -172,9 +204,16 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     def expect_field_error(self, field: str, message: str) -> None:
         expect(self.field_error(field)).to_have_text(message)
 
+    def expect_field_validation_error(self, field: str) -> None:
+        self.expect_field_error(field, self.FIELD_ERROR_MESSAGES[field])
+
     def expect_no_field_errors(self) -> None:
         for field in self.FIELDS:
             expect(self.field_error(field)).to_have_text("")
+
+    def expect_error_alert(self) -> None:
+        expect(self.error_alert).to_be_visible()
+        expect(self.error_alert).to_contain_text(self.ERROR_ALERT_TEXT)
 
     # endregion
     # ==========================================================================================================

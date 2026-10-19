@@ -5,15 +5,27 @@ Feature: Edit account details
   I want to edit my personal details
   So that my account information stays up to date
 
+  # [CLEANUP] After each positive scenario the original data from .env is restored (fixture in the steps file).
+
   @positive
   Scenario: Update all editable account details and restore the original data
-    Given the customer is logged in and opens Edit account details
+    Given the customer is logged in and opens Edit account details from the account dashboard
     When the customer changes all editable account details to new values
     And the customer submits the account details form
     Then the account dashboard confirms the account was successfully updated
     When the customer opens Edit account details again
     Then the updated account details are displayed
     And the login name remains unchanged
+
+  @positive
+  Scenario: Clear the optional telephone and fax and restore the original data
+    Given the customer is logged in and opens Edit account details from the account dashboard
+    When the customer clears the optional telephone and fax
+    And the customer submits the account details form
+    Then the account dashboard confirms the account was successfully updated
+    When the customer opens Edit account details again
+    Then the telephone and fax fields are empty
+    And the first name, last name and e-mail are unchanged
 
   @negative @validation
   Scenario Outline: Reject invalid first name: <case>
@@ -22,6 +34,7 @@ Feature: Edit account details
     And the customer submits the account details form
     Then the account details form displays a validation error for "firstname"
     And the account details form stays open with an error alert
+    And the account details were not saved
 
     Examples:
       | case                 | value       |
@@ -35,6 +48,7 @@ Feature: Edit account details
     And the customer submits the account details form
     Then the account details form displays a validation error for "lastname"
     And the account details form stays open with an error alert
+    And the account details were not saved
 
     Examples:
       | case                 | value       |
@@ -48,6 +62,7 @@ Feature: Edit account details
     And the customer submits the account details form
     Then the account details form displays a validation error for "email"
     And the account details form stays open with an error alert
+    And the account details were not saved
 
     Examples:
       | case             | value               |

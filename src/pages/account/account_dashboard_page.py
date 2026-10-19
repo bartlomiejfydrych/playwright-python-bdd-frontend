@@ -21,6 +21,9 @@ class AccountDashboardPage(AccountBasePage):
 
     HEADING_TEXT = "My Account"
 
+    # Alert shown after a successful account details update (rt=account/edit -> redirect here)
+    ACCOUNT_UPDATED_TEXT = "Success: Your account has been successfully updated."
+
     # Icon bar: name ➤ href fragment (icons only, the name is in the tooltip)
     QUICK_LINKS = {
         "Edit account details": "account/edit",
@@ -57,6 +60,9 @@ class AccountDashboardPage(AccountBasePage):
 
         # Content panel
         self.first_name = page.locator("h1.heading1 .subtext")
+
+        # Alerts
+        self.success_alert = page.locator(".alert.alert-success")
 
         # Icon bar with quick links
         self.quick_links_bar = page.locator("ul.nav-dash")
@@ -149,6 +155,9 @@ class AccountDashboardPage(AccountBasePage):
 
     def expect_first_name(self, first_name: str) -> None:
         expect(self.first_name).to_have_text(first_name)
+
+    def expect_account_updated_alert(self) -> None:
+        expect(self.success_alert).to_contain_text(self.ACCOUNT_UPDATED_TEXT)
 
     def expect_quick_links(self) -> None:
         expect(self.quick_links).to_have_count(len(self.QUICK_LINKS))
