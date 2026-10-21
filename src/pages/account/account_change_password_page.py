@@ -16,6 +16,7 @@ class AccountChangePasswordPage(AccountBasePage):
     # region VARIABLES
     # ==========================================================================================================
 
+    PATH = "/index.php?rt=account/password"
     URL_PATTERN = re.compile(r"rt=account/password")
 
     HEADING_TEXT = "Change Password"
@@ -43,6 +44,8 @@ class AccountChangePasswordPage(AccountBasePage):
             "section.breadcrumbs ul.breadcrumb a[href*='account/password']")
 
         # Form
+        self.error_alert = page.locator(".alert.alert-error.alert-danger")
+        self.success_alert = page.locator(".alert.alert-success")
         self.form = page.locator("#PasswordFrm")
         self.instruction = page.locator("#PasswordFrm h4.heading4")
 
@@ -64,6 +67,9 @@ class AccountChangePasswordPage(AccountBasePage):
     # ----------------
     # Dynamic locators
     # ----------------
+
+    def open(self) -> None:
+        self.goto(self.PATH)
 
     def field_input(self, field: str) -> Locator:
         return self.page.locator(f"#PasswordFrm_{field}")
