@@ -20,6 +20,7 @@ class AccountChangePasswordPage(AccountBasePage):
     URL_PATTERN = re.compile(r"rt=account/password")
 
     HEADING_TEXT = "Change Password"
+    ERROR_ALERT_TEXT = "Oops, there is an error with information provided!"
     INSTRUCTION_TEXT = "To update your password, please provide current and new password details"
 
     # Form fields: input name (id = PasswordFrm_<name>); all of them are required
@@ -45,7 +46,6 @@ class AccountChangePasswordPage(AccountBasePage):
 
         # Form
         self.error_alert = page.locator(".alert.alert-error.alert-danger")
-        self.success_alert = page.locator(".alert.alert-success")
         self.form = page.locator("#PasswordFrm")
         self.instruction = page.locator("#PasswordFrm h4.heading4")
 
@@ -146,6 +146,10 @@ class AccountChangePasswordPage(AccountBasePage):
         expect(self.page).to_have_url(self.URL_PATTERN)
         expect(self.heading).to_have_text(self.HEADING_TEXT)
         self.expect_side_menu_selected("Change password")
+
+    def expect_error_alert(self) -> None:
+        expect(self.error_alert).to_be_visible()
+        expect(self.error_alert).to_contain_text(self.ERROR_ALERT_TEXT)
 
     def expect_instruction(self) -> None:
         expect(self.instruction).to_have_text(self.INSTRUCTION_TEXT)

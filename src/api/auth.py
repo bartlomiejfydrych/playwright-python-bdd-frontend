@@ -19,8 +19,17 @@ def _extract_hidden_value(html: str, field_name: str) -> str:
     return value.group(1)
 
 
-def login_via_api(playwright: Playwright, base_url: str) -> StorageState:
-    """Logs in with plain HTTP requests and returns Playwright storage state."""
+def login_via_api(
+        playwright: Playwright,
+        base_url: str,
+        login_name: str | None = None,
+        password: str | None = None,
+) -> StorageState:
+    """
+    Logs in with plain HTTP requests and returns Playwright storage state.
+    Without arguments it uses the account from .env; custom credentials are needed e.g. to check
+    which password is currently valid after a password change.
+    """
     api = playwright.request.new_context(base_url=base_url)
     try:
         html = api.get(LOGIN_PATH).text()
@@ -30,8 +39,8 @@ def login_via_api(playwright: Playwright, base_url: str) -> StorageState:
             multipart={
                 "csrftoken": _extract_hidden_value(html, "csrftoken"),
                 "csrfinstance": _extract_hidden_value(html, "csrfinstance"),
-                "loginname": config.get_account_login_name(),
-                "password": config.get_account_password(),
+                "loginname": login_name if login_name is not None else config.get_account_login_name(),
+                "password": password if password is not None else config.get_account_password(),
             },
         )
 

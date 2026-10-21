@@ -23,6 +23,8 @@ class AccountDashboardPage(AccountBasePage):
 
     # Alert shown after a successful account details update (rt=account/edit -> redirect here)
     ACCOUNT_UPDATED_TEXT = "Success: Your account has been successfully updated."
+    # Alert shown after a successful password change (rt=account/password -> redirect here)
+    PASSWORD_UPDATED_TEXT = "Success: Your password has been successfully updated."
 
     # Icon bar: name ➤ href fragment (icons only, the name is in the tooltip)
     QUICK_LINKS = {
@@ -158,6 +160,9 @@ class AccountDashboardPage(AccountBasePage):
 
     def expect_account_updated_alert(self) -> None:
         expect(self.success_alert).to_contain_text(self.ACCOUNT_UPDATED_TEXT)
+
+    def expect_password_updated_alert(self) -> None:
+        expect(self.success_alert).to_contain_text(self.PASSWORD_UPDATED_TEXT)
 
     def expect_quick_links(self) -> None:
         expect(self.quick_links).to_have_count(len(self.QUICK_LINKS))
