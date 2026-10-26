@@ -17,7 +17,7 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
     # region VARIABLES
     # ==========================================================================================================
 
-    URL_PATTERN = re.compile(r"rt=account/address/update")
+    URL_PATTERN = re.compile(r"rt=account/address/(?:insert|update)")
 
     HEADING_TEXT = "Address Book"
     FORM_HEADING_TEXT = "Edit Address"
@@ -69,6 +69,7 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
         # Buttons
         self.continue_button = page.locator("#AddressFrm button[type='submit']")
         self.back_button = page.locator("#AddressFrm a[title='Back']")
+        self.error_alert = page.locator(".alert.alert-error, .alert.alert-danger")
 
     # endregion
     # ==========================================================================================================
@@ -131,6 +132,8 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
         if country is not None:
             self.country_select.select_option(label=country)
         if region is not None:
+            # The store loads region options asynchronously when the country changes.
+            self.region_select.locator("option", has_text=region).wait_for(state="attached")
             self.region_select.select_option(label=region)
 
         if default is not None:

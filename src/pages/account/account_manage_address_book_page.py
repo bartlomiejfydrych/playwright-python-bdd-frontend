@@ -43,6 +43,10 @@ class AccountManageAddressBookPage(AccountBasePage):
         self.entries = page.locator(".contentpanel .genericbox")
         self.entry_addresses = page.locator(".contentpanel .genericbox address")
         self.edit_buttons = page.locator(".contentpanel .genericbox button[title='Edit']")
+        self.delete_buttons = page.locator(
+            ".contentpanel .genericbox a[title='Delete'], .contentpanel .genericbox button[title='Delete']")
+        self.success_alert = page.locator(".alert.alert-success")
+        self.error_alert = page.locator(".alert.alert-error, .alert.alert-danger")
 
         # Buttons under the list
         self.back_button = page.locator(".contentpanel a.btn[title='Back']")
@@ -74,6 +78,9 @@ class AccountManageAddressBookPage(AccountBasePage):
     # ------------------
     # Actions: main part
     # ------------------
+
+    def open(self) -> None:
+        self.goto("index.php?rt=account/address")
 
     def click_edit_address(self, index: int = 0) -> None:
         self.entry_edit_button(index).click()
@@ -127,6 +134,9 @@ class AccountManageAddressBookPage(AccountBasePage):
     def expect_address_lines(self, lines: list[str], index: int = 0) -> None:
         # use_inner_text: z <br> robi się spacja (textContent skleiłby linie bez separatora)
         expect(self.entry_address(index)).to_have_text(" ".join(lines), use_inner_text=True)
+
+    def expect_address_lines_containing(self, marker: str, lines: list[str]) -> None:
+        expect(self.entry_containing(marker).locator("address")).to_have_text(" ".join(lines), use_inner_text=True)
 
     # endregion
     # ==========================================================================================================
