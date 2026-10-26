@@ -22,6 +22,20 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
     HEADING_TEXT = "Address Book"
     FORM_HEADING_TEXT = "Edit Address"
 
+    ERROR_ALERT_TEXT = "Oops, there is an error with information provided!"
+
+    # Texts verified against the running store (the store says "Address", not "Address 1", and the postcode minimum is 2)
+    FIELD_ERROR_MESSAGES = {
+        "firstname": "First Name must be between 1 and 32 characters!",
+        "lastname": "Last Name must be between 1 and 32 characters!",
+        "address_1": "Address must be between 3 and 128 characters!",
+        "city": "City must be between 3 and 128 characters!",
+        "postcode": "Zip/postal code must be between 2 and 10 characters!",
+        "zone_id": "Please select a region / state!",
+    }
+
+    REGION_PLACEHOLDER = "--- Please Select ---"
+
     # Form fields: input name (id = AddressFrm_<name>); zone_id and country_id are selects
     FIELDS = (
         "firstname", "lastname", "company", "address_1", "address_2",
@@ -133,11 +147,19 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
             self.country_select.select_option(label=country)
         if region is not None:
             # The store loads region options asynchronously when the country changes.
-            self.region_select.locator("option", has_text=region).wait_for(state="attached")
+            # get_by_role + exact: has_text is a substring match and wait_for() fails on several matches
+            # (e.g. "Virginia" vs "West Virginia")
+            self.region_select.get_by_role("option", name=region, exact=True).wait_for(state="attached")
             self.region_select.select_option(label=region)
 
         if default is not None:
             (self.default_yes_radio if default else self.default_no_radio).check()
+
+    def fill_field(self, field: str, value: str) -> None:
+        self.field_input(field).fill(value)
+
+    def clear_region(self) -> None:
+        self.region_select.select_option(label=self.REGION_PLACEHOLDER)
 
     def click_continue(self) -> None:
         self.continue_button.click()
@@ -222,6 +244,13 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
 
     def expect_field_error(self, field: str, message: str) -> None:
         expect(self.field_error(field)).to_have_text(message)
+
+    def expect_field_validation_error(self, field: str) -> None:
+        self.expect_field_error(field, self.FIELD_ERROR_MESSAGES[field])
+
+    def expect_error_alert(self) -> None:
+        expect(self.error_alert).to_be_visible()
+        expect(self.error_alert).to_contain_text(self.ERROR_ALERT_TEXT)
 
     def expect_no_field_errors(self) -> None:
         for field in self.FIELDS:
