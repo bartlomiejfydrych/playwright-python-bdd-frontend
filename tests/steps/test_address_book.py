@@ -136,7 +136,7 @@ def address_cleanup(
                 and address_book_page.entry_containing(default_marker).count() == 1
                 and address_book_page.has_delete_button_containing(default_marker)):
             address_book_page.click_edit_address_containing(default_marker)
-            address_form_page.expect_loaded()
+            address_form_page.expect_loaded_for_edit()
             address_form_page.fill_form(default=True)
             address_form_page.click_continue()
             address_book_page.expect_loaded()
@@ -289,7 +289,7 @@ def edit_new_address(
         temporary_address_marker: str,
 ) -> None:
     address_book_page.click_edit_address_containing(temporary_address_marker)
-    address_form_page.expect_loaded()
+    address_form_page.expect_loaded_for_edit()
     fill_valid_form(
         address_form_page, with_marker(temporary_address_marker, UPDATED_ADDRESS, UPDATED_SUFFIX), default=False)
     address_form_page.click_continue()
@@ -309,7 +309,7 @@ def set_only_address_non_default(
         address_form_page: AccountManageAddressBookEditAddressPage,
 ) -> None:
     address_book_page.click_edit_address(0)
-    address_form_page.expect_loaded()
+    address_form_page.expect_loaded_for_edit()
     address_form_page.fill_form(default=False)
     address_form_page.click_continue()
     address_book_page.expect_loaded()
@@ -324,6 +324,18 @@ def reopen_only_address(
     address_form_page.expect_loaded()
 
 
+@when("the customer edits only the first name of the temporary address")
+def edit_only_first_name(
+        address_book_page: AccountManageAddressBookPage,
+        address_form_page: AccountManageAddressBookEditAddressPage,
+        temporary_address_marker: str,
+) -> None:
+    address_book_page.click_edit_address_containing(temporary_address_marker)
+    address_form_page.expect_loaded_for_edit()
+    address_form_page.fill_form(first_name=temporary_address_marker + "Edited", default=False)
+    address_form_page.click_continue()
+
+
 @when("the customer restores the original address as default")
 def restore_original_default(
         address_book_page: AccountManageAddressBookPage,
@@ -332,7 +344,7 @@ def restore_original_default(
 ) -> None:
     assert address_book_state.default_marker, "The original default address was not captured."
     address_book_page.click_edit_address_containing(address_book_state.default_marker)
-    address_form_page.expect_loaded()
+    address_form_page.expect_loaded_for_edit()
     address_form_page.fill_form(default=True)
     address_form_page.click_continue()
     address_book_page.expect_loaded()
@@ -345,7 +357,7 @@ def open_temporary_address_for_editing(
         temporary_address_marker: str,
 ) -> None:
     address_book_page.click_edit_address_containing(temporary_address_marker)
-    address_form_page.expect_loaded()
+    address_form_page.expect_loaded_for_edit()
 
 
 @when(
@@ -470,6 +482,15 @@ def original_default_has_delete(
 ) -> None:
     assert address_book_state.default_marker, "The original default address was not captured."
     address_book_page.expect_delete_button_visible(address_book_state.default_marker)
+
+
+@then("the original default address has no Delete button")
+def original_default_has_no_delete(
+        address_book_page: AccountManageAddressBookPage,
+        address_book_state: AddressBookState,
+) -> None:
+    assert address_book_state.default_marker, "The original default address was not captured."
+    address_book_page.expect_no_delete_button(address_book_state.default_marker)
 
 
 @then(parsers.parse('Default Address is still set to "{value}"'))

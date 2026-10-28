@@ -19,3 +19,17 @@ def logged_in_page(new_context, auth_state: StorageState) -> Page:
     """
     context = new_context(storage_state=auth_state)
     return context.new_page()
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    # Scenarios tagged @known_bug describe the CORRECT behaviour that the store currently violates.
+    # strict=True: once the store is fixed the test starts passing (XPASS) and fails the run,
+    # which is the signal to remove the tag and the workaround steps in the other scenarios.
+    # raises=AssertionError: an xfail must not hide unrelated errors (timeouts, missing elements, typos).
+    for item in items:
+        if item.get_closest_marker("known_bug"):
+            item.add_marker(pytest.mark.xfail(
+                reason="Known store defect: editing a non-default address makes it the default one",
+                strict=True,
+                raises=AssertionError,
+            ))

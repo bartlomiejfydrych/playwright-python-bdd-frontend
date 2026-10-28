@@ -19,9 +19,11 @@ Feature: Manage address book
     And the original addresses are unchanged
     And the address book has one more address than before
     And the updated address is listed with the entered details
-    And the new address has a Delete button
+    # The store makes an edited address the default one (see the @known_bug scenario), so the original
+    # default address has to be restored before the temporary address can be deleted
+    When the customer restores the original address as default
     # [CLEANUP] Remove the temporary address
-    When the customer deletes the new address
+    And the customer deletes the new address
     Then the address book confirms the address was successfully deleted
     And the original addresses are unchanged
     And the address book has the same number of addresses as before
@@ -51,6 +53,16 @@ Feature: Manage address book
     And the new address is not listed
     And the original addresses are unchanged
     And the address book has the same number of addresses as before
+
+  @negative @known_bug
+  Scenario: Editing a non-default address keeps it non-default
+    Given the customer is logged in and opens Manage Address Book from the account dashboard
+    And the original address book entries are remembered
+    And the customer has a temporary non-default address
+    When the customer edits only the first name of the temporary address
+    Then the address book confirms the address was successfully updated
+    And the new address has a Delete button
+    And the original default address has no Delete button
 
   @negative @validation
   Scenario Outline: Reject invalid values when adding an address: <case>

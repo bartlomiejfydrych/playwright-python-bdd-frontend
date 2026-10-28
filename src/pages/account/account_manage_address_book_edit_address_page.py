@@ -1,6 +1,8 @@
 import re
+import warnings
 
 from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from src.pages.account.account_base_page import AccountBasePage
 
@@ -35,6 +37,10 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
     }
 
     REGION_PLACEHOLDER = "--- Please Select ---"
+
+    # Changing the country triggers an AJAX call: GET index.php?rt=common/zone&zone_id=FALSE&country_id=<id>
+    # which replaces the options of the Region / State select
+    ZONE_REQUEST_PATTERN = "rt=common/zone"
 
     # Form fields: input name (id = AddressFrm_<name>); zone_id and country_id are selects
     FIELDS = (
@@ -144,16 +150,50 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
 
         # Country first, then region: changing the country reloads the region list
         if country is not None:
-            self.country_select.select_option(label=country)
+            self.select_country(country)
         if region is not None:
-            # The store loads region options asynchronously when the country changes.
-            # get_by_role + exact: has_text is a substring match and wait_for() fails on several matches
-            # (e.g. "Virginia" vs "West Virginia")
-            self.region_select.get_by_role("option", name=region, exact=True).wait_for(state="attached")
-            self.region_select.select_option(label=region)
+            self.select_region(region)
 
         if default is not None:
             (self.default_yes_radio if default else self.default_no_radio).check()
+
+    def select_country(self, country: str) -> None:
+        # Selecting the already selected country fires no change event, so there is no request to wait for
+        if self.country_select.locator("option:checked").inner_text().strip() == country:
+            return
+        country_id = self.country_option(country).get_attribute("value")
+
+        # Wait for the response that carries the new region list (matched by country_id, so a request still
+        # in flight for the previously selected country can't satisfy the wait)
+        with self.page.expect_response(
+                lambda response: self.ZONE_REQUEST_PATTERN in response.url and f"country_id={country_id}" in response.url
+        ):
+            self.country_select.select_option(label=country)
+
+    def country_option(self, country: str) -> Locator:
+        return self.country_select.locator("option").filter(has_text=re.compile(rf"^\s*{re.escape(country)}\s*$"))
+
+    def select_region(self, region: str) -> None:
+        # Exact-text regex: has_text alone is a substring match ("Virginia" would also match "West Virginia")
+        # and wait_for() fails on several matches. Waiting for the option also covers the case where the
+        # country was not changed and the list is still being loaded after the page opened.
+        option = self.region_select.locator("option").filter(has_text=re.compile(rf"^\s*{re.escape(region)}\s*$"))
+        try:
+            option.wait_for(state="attached", timeout=10_000)
+        except PlaywrightTimeoutError:
+            # Seen in ~1 of 35 runs: the region list for the already selected country never showed up.
+            # Ask the store for it again once and leave a trace in the test report.
+            warnings.warn(f"Region list did not contain '{region}' after 10 s - reloading it once", stacklevel=2)
+            self.reload_regions()
+            option.wait_for(state="attached")
+        self.region_select.select_option(label=region)
+
+    def reload_regions(self) -> None:
+        country_id = self.country_select.input_value()
+        with self.page.expect_response(
+                lambda response: self.ZONE_REQUEST_PATTERN in response.url and f"country_id={country_id}" in response.url
+        ):
+            self.country_select.dispatch_event("change")
 
     def fill_field(self, field: str, value: str) -> None:
         self.field_input(field).fill(value)
@@ -220,6 +260,12 @@ class AccountManageAddressBookEditAddressPage(AccountBasePage):
         expect(self.page).to_have_url(self.URL_PATTERN)
         expect(self.heading).to_have_text(self.HEADING_TEXT)
         expect(self.form_heading).to_have_text(self.FORM_HEADING_TEXT)
+
+    def expect_loaded_for_edit(self) -> None:
+        # The region list is (re)loaded asynchronously after the page opens. Submitting before that finishes
+        # sends "--- Please Select ---" and the store rejects an address that was valid a moment ago.
+        self.expect_loaded()
+        expect(self.selected_option("zone_id")).not_to_have_text(self.REGION_PLACEHOLDER)
 
     def expect_field_value(self, field: str, value: str) -> None:
         expect(self.field_input(field)).to_have_value(value)
