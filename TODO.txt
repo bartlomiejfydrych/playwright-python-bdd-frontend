@@ -1,6 +1,8 @@
 Lista rzeczy do zrobienia:
 
 – Pisać `features` i `testy`
+    – Testy wylogowania
+    – Testy zakupu
 – Dodać już projekt na Linkedin i do CV
 – Weryfikować testy aż do skutku
 – Dodać jakąś porównywarkę screenów czy coś
