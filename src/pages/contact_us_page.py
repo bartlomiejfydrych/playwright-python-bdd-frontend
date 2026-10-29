@@ -27,6 +27,10 @@ class ContactUsPage(BasePage):
     FORM_TITLE = "Contact Us Form"
     SUCCESS_MESSAGE = "Your enquiry has been successfully sent to the store owner!"
 
+    # Contact details displayed on the page (from the supplied page snapshot).
+    STORE_ADDRESS_LINES = ("123 Main Street", "Kensington", "London", "SW7 1AA")
+    STORE_TELEPHONE = "012345 6781199"
+
     # Form fields: input name (id = ContactUsFrm_<name>); all of them are required
     FIELDS = ("first_name", "email", "enquiry")
 
@@ -169,6 +173,12 @@ class ContactUsPage(BasePage):
     def success_message_text(self) -> str:
         return self.success_message.inner_text().strip()
 
+    def store_address_lines(self) -> list[str]:
+        return [line.strip() for line in self.address.inner_text().splitlines() if line.strip()]
+
+    def store_telephone_text(self) -> str:
+        return self.telephone_block.inner_text().replace("Telephone:", "").strip()
+
     def breadcrumb_texts(self) -> list[str]:
         return [t.strip() for t in self.breadcrumb_links.all_inner_texts()]
 
@@ -197,6 +207,20 @@ class ContactUsPage(BasePage):
     def expect_required_fields(self) -> None:
         for field in self.FIELDS:
             expect(self.field_required_marker(field)).to_be_visible()
+
+    def expect_store_contact_details(self) -> None:
+        expect(self.address).to_be_visible()
+        assert self.store_address_lines() == list(self.STORE_ADDRESS_LINES)
+        expect(self.telephone_block).to_contain_text("Telephone:")
+        expect(self.telephone_block).to_contain_text(self.STORE_TELEPHONE)
+
+    def expect_field_error_visible(self, field: str) -> None:
+        expect(self.field_error(field)).to_be_visible()
+        expect(self.field_error(field)).not_to_be_empty()
+
+    def expect_form_page_still_open(self) -> None:
+        expect(self.page).to_have_url(self.URL_PATTERN)
+        expect(self.form).to_be_visible()
 
     def expect_field_error(self, field: str, message: str) -> None:
         expect(self.field_error(field)).to_have_text(message)
