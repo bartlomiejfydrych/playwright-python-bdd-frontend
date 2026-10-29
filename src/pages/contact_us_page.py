@@ -34,11 +34,25 @@ class ContactUsPage(BasePage):
     # Form fields: input name (id = ContactUsFrm_<name>); all of them are required
     FIELDS = ("first_name", "email", "enquiry")
 
+    # Label used in the feature files ➤ input name
+    FIELD_BY_LABEL = {
+        "First name": "first_name",
+        "Email": "email",
+        "Enquiry": "enquiry",
+    }
+
     # Errors shown under the fields after submitting an empty form
     EMPTY_FORM_ERRORS = {
         "first_name": "First name: is required field! Name must be between 3 and 32 characters!",
         "email": "Email: is required field! E-Mail Address does not appear to be valid!",
         "enquiry": "Enquiry: is required field! Enquiry must be between 10 and 3000 characters!",
+    }
+
+    # Errors for a NON-empty value that breaks the rule (the "is required field!" prefix appears only for empty values)
+    INVALID_VALUE_ERRORS = {
+        "first_name": "Name must be between 3 and 32 characters!",
+        "email": "E-Mail Address does not appear to be valid!",
+        "enquiry": "Enquiry must be between 10 and 3000 characters!",
     }
 
     # endregion
@@ -140,6 +154,9 @@ class ContactUsPage(BasePage):
             if value is not None:
                 self.field_input(field).fill(value)
 
+    def fill_field(self, field: str, value: str) -> None:
+        self.field_input(field).fill(value)
+
     def click_submit(self) -> None:
         self.submit_button.click()
 
@@ -204,13 +221,23 @@ class ContactUsPage(BasePage):
         for field in self.FIELDS:
             expect(self.field_input(field)).to_have_value("")
 
+    def expect_field_value(self, field: str, value: str) -> None:
+        expect(self.field_input(field)).to_have_value(value)
+
+    def expect_field_values(self, first_name: str, email: str, enquiry: str) -> None:
+        self.expect_field_value("first_name", first_name)
+        self.expect_field_value("email", email)
+        self.expect_field_value("enquiry", enquiry)
+
     def expect_required_fields(self) -> None:
         for field in self.FIELDS:
             expect(self.field_required_marker(field)).to_be_visible()
 
     def expect_store_contact_details(self) -> None:
         expect(self.address).to_be_visible()
-        assert self.store_address_lines() == list(self.STORE_ADDRESS_LINES)
+        # NOTE FOR ME: expect(...) ponawia sprawdzenie, zwykły assert na odczytanym tekście nie
+        for line in self.STORE_ADDRESS_LINES:
+            expect(self.address).to_contain_text(line)
         expect(self.telephone_block).to_contain_text("Telephone:")
         expect(self.telephone_block).to_contain_text(self.STORE_TELEPHONE)
 
@@ -224,6 +251,13 @@ class ContactUsPage(BasePage):
 
     def expect_field_error(self, field: str, message: str) -> None:
         expect(self.field_error(field)).to_have_text(message)
+
+    def expect_only_field_error(self, field: str, message: str) -> None:
+        # The error of the tested field has the exact text and no other field shows an error
+        self.expect_field_error(field, message)
+        for other in self.FIELDS:
+            if other != field:
+                expect(self.field_error(other)).to_be_hidden()
 
     def expect_empty_form_errors(self) -> None:
         for field, message in self.EMPTY_FORM_ERRORS.items():

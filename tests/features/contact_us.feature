@@ -6,7 +6,6 @@ Feature: Contact the store owner
 
   Background:
     Given the customer is logged in and opens the Contact Us page
-    Then the store address and telephone number are correct
 
   # ==========================================================================================
   # POSITIVE
@@ -14,14 +13,17 @@ Feature: Contact the store owner
 
   @positive @smoke
   Scenario: Send an enquiry with all fields filled in correctly
+    Then the store address and telephone number are correct
     When the customer fills in the Contact Us form with valid data
     And the customer submits the enquiry
     Then the enquiry success page is displayed
 
   @positive
   Scenario: Reset a filled-in Contact Us form
+    Then the store address and telephone number are correct
     When the customer fills in the Contact Us form with valid data
-    And the customer resets the form
+    Then the Contact Us form contains the entered data
+    When the customer resets the form
     Then all Contact Us form fields are empty
 
   # ==========================================================================================
@@ -40,7 +42,7 @@ Feature: Contact the store owner
     And the customer clears the "<field>" field
     And the customer submits the enquiry
     Then the Contact Us form remains open
-    And a validation error is displayed for the "<field>" field
+    And only the "<field>" field shows the required field error
 
     Examples:
       | field      |
@@ -58,7 +60,7 @@ Feature: Contact the store owner
     And the customer sets the "Email" field to "<email>"
     And the customer submits the enquiry
     Then the Contact Us form remains open
-    And a validation error is displayed for the "Email" field
+    And only the "Email" field shows the invalid value error
 
     Examples:
       | email             |
@@ -66,7 +68,6 @@ Feature: Contact the store owner
       | user@             |
       | @example.com      |
       | user@@example.com |
-      | user@example,com  |
 
   @negative @validation
   Scenario Outline: Submit the Contact Us form with a first name outside the allowed length
@@ -74,12 +75,11 @@ Feature: Contact the store owner
     And the customer sets the "First name" field to a value of <length> characters
     And the customer submits the enquiry
     Then the Contact Us form remains open
-    And a validation error is displayed for the "First name" field
+    And only the "First name" field shows the invalid value error
 
     Examples:
       | length |
       | 2      |
-      | 33     |
 
   @negative @validation
   Scenario Outline: Submit the Contact Us form with an enquiry outside the allowed length
@@ -87,9 +87,36 @@ Feature: Contact the store owner
     And the customer sets the "Enquiry" field to a value of <length> characters
     And the customer submits the enquiry
     Then the Contact Us form remains open
-    And a validation error is displayed for the "Enquiry" field
+    And only the "Enquiry" field shows the invalid value error
 
     Examples:
       | length |
-      | 9      |
       | 3001   |
+
+  # ==========================================================================================
+  # KNOWN BUGS: the store accepts these values and sends the enquiry (success page)
+  # ==========================================================================================
+
+  @negative @validation @known_bug
+  Scenario: Reject an email address with a comma instead of a dot
+    When the customer fills in the Contact Us form with valid data
+    And the customer sets the "Email" field to "user@example,com"
+    And the customer submits the enquiry
+    Then the Contact Us form remains open
+    And only the "Email" field shows the invalid value error
+
+  @negative @validation @known_bug
+  Scenario: Reject a first name longer than 32 characters
+    When the customer fills in the Contact Us form with valid data
+    And the customer sets the "First name" field to a value of 33 characters
+    And the customer submits the enquiry
+    Then the Contact Us form remains open
+    And only the "First name" field shows the invalid value error
+
+  @negative @validation @known_bug
+  Scenario: Reject an enquiry shorter than 10 characters
+    When the customer fills in the Contact Us form with valid data
+    And the customer sets the "Enquiry" field to a value of 9 characters
+    And the customer submits the enquiry
+    Then the Contact Us form remains open
+    And only the "Enquiry" field shows the invalid value error

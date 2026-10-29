@@ -29,7 +29,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if item.get_closest_marker("known_bug"):
             item.add_marker(pytest.mark.xfail(
-                reason="Known store defect: editing a non-default address makes it the default one",
+                reason="Known store defect: the scenario describes the correct behaviour that the store violates",
                 strict=True,
                 raises=AssertionError,
             ))
