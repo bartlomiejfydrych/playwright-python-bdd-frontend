@@ -1,12 +1,10 @@
 Lista rzeczy do zrobienia:
 
 – Pisać `features` i `testy`
-– Po testach zakupu produktu dodać i sprawdzać:
-  – `account_order_history_page.py`
-  – `account_transaction_history_page.py`
-  – `account_downloads.page.py`
 – Dodać już projekt na Linkedin i do CV
 – Weryfikować testy aż do skutku
+– Dodać jakąś porównywarkę screenów czy coś
 – Dodać raport Allure
 – Usunąć feature i testy `home_page`
+– Zrobić osobny katalog z testami bez BDD
 – Zaktualizować główne README projektu
