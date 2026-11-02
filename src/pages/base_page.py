@@ -209,6 +209,9 @@ class BasePage:
     def click_checkout(self) -> None:
         self.checkout_link.click()
 
+    def hover_account_menu(self) -> None:
+        self.account_link.hover()
+
     # ---------------------------------------------
     # Actions: search engine, currency, mini-basket
     # ---------------------------------------------
@@ -318,6 +321,9 @@ class BasePage:
 
     def expect_currency(self, symbol: str) -> None:
         expect(self.currency_toggle).to_contain_text(symbol)
+
+    def expect_login_link_visible(self) -> None:
+        expect(self.login_link).to_be_visible()
 
     # endregion
     # ==========================================================================================================
