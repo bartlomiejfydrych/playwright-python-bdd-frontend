@@ -2,6 +2,9 @@ Lista rzeczy do zrobienia:
 
 – Pisać `features` i `testy`
     – Testy wylogowania
+    – Czego nie dodałem: sprawdzania, że po wylogowaniu koszyk zostaje zapisany i wraca po ponownym zalogowaniu
+     (strona obiecuje to w drugim komunikacie), ani testu przycisku “wstecz” po wylogowaniu. Pierwszy byłby wartościowy,
+     drugi może być niestabilny przez cache przeglądarki.
     – Testy zakupu
 – Dodać już projekt na Linkedin i do CV
 – Weryfikować testy aż do skutku

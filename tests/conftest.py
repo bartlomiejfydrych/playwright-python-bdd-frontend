@@ -4,20 +4,37 @@ from playwright.sync_api import Page, Playwright, StorageState
 from src.api.auth import login_via_api
 
 
+class AuthSession:
+    """
+    Storage state shared by all tests (one API login per run) that can be refreshed.
+
+    NOTE FOR ME: Wylogowanie (test_logout) może po stronie serwera unieważnić sesję współdzieloną przez wszystkie testy.
+    Dlatego test wylogowania po sobie wywołuje `refresh()`, a kolejne testy dostają świeżo zalogowany stan.
+    """
+
+    def __init__(self, playwright: Playwright, base_url: str):
+        self._playwright = playwright
+        self._base_url = base_url
+        self.state: StorageState = login_via_api(playwright, base_url)
+
+    def refresh(self) -> None:
+        self.state = login_via_api(self._playwright, self._base_url)
+
+
 @pytest.fixture(scope="session")
-def auth_state(playwright: Playwright, base_url: str) -> StorageState:
-    return login_via_api(playwright, base_url)
+def auth_session(playwright: Playwright, base_url: str) -> AuthSession:
+    return AuthSession(playwright, base_url)
 
 
 @pytest.fixture
-def logged_in_page(new_context, auth_state: StorageState) -> Page:
+def logged_in_page(new_context, auth_session: AuthSession) -> Page:
     """
     A page with the authenticated storage state, isolated per test.
 
     NOTE FOR ME: Kontekst tworzymy przez fixture `new_context` z pytest-playwright (a nie przez `browser.new_context`),
     dzięki temu działają `--tracing`, `--screenshot`, `--video`, `base_url` i automatyczne zamykanie kontekstu.
     """
-    context = new_context(storage_state=auth_state)
+    context = new_context(storage_state=auth_session.state)
     return context.new_page()
 
 

@@ -1,3 +1,5 @@
+import re
+
 from playwright.sync_api import Locator, Page, expect
 
 from src.pages.base_page import BasePage
@@ -15,6 +17,7 @@ class HomePage(BasePage):
     # ==========================================================================================================
 
     PATH = "/"
+    ROOT_URL_PATTERN = re.compile(r"^https?://[^/]+/?$")
     TITLE = "A place to practice your automation skills!"
 
     # Product sections: key ➤ section selector
@@ -206,6 +209,9 @@ class HomePage(BasePage):
     def expect_loaded(self) -> None:
         expect(self.page).to_have_title(self.TITLE)
         expect(self.logo).to_be_visible()
+
+    def expect_root_url(self) -> None:
+        expect(self.page).to_have_url(self.ROOT_URL_PATTERN)
 
     def expect_sections_visible(self) -> None:
         for key in self.SECTIONS:

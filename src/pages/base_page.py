@@ -66,6 +66,7 @@ class BasePage:
         self.account_link = page.locator("#main_menu_top a.menu_account")
         self.login_link = page.locator("#main_menu_top a.menu_login")  # logged out only
         self.logout_link = page.locator("#main_menu_top a.menu_logout")  # logged in only
+        self.account_dropdown = page.locator("#main_menu_top li[data-id='menu_account'] ul.sub_menu")
         self.check_order_link = page.locator("#main_menu_top a.menu_order")
         self.cart_link = page.locator("#main_menu_top li[data-id='menu_cart'] a")
         self.checkout_link = page.locator("#main_menu_top a.menu_checkout")
@@ -144,6 +145,9 @@ class BasePage:
     def goto(self, path: str = "/"):
         self.page.goto(path)
 
+    def go_back(self) -> None:
+        self.page.go_back()
+
     def title(self) -> str:
         return self.page.title()
 
@@ -185,6 +189,10 @@ class BasePage:
         self.welcome_link.hover()
         self.welcome_logoff_link.click()
 
+    def click_logoff_from_footer(self) -> None:
+        self.scroll_to_footer()
+        self.footer_logoff_link.click()
+
     def click_specials(self) -> None:
         self.specials_link.click()
 
@@ -210,7 +218,17 @@ class BasePage:
         self.checkout_link.click()
 
     def hover_account_menu(self) -> None:
-        self.account_link.hover()
+        # A single hover right after a page load sometimes does not open the dropdown (the page is still settling),
+        # and expect() cannot repeat the hover itself, so: wait for the load, then hover until the dropdown is open.
+        self.page.wait_for_load_state("load")
+        for _ in range(3):
+            self.account_link.hover()
+            try:
+                expect(self.account_dropdown).to_be_visible(timeout=1500)
+                return
+            except AssertionError:
+                self.page.mouse.move(0, 0)  # leave the menu, so the next hover fires "mouseenter" again
+        # No exception on purpose: the assertion that follows in the test reports what is really visible
 
     # ---------------------------------------------
     # Actions: search engine, currency, mini-basket
@@ -312,6 +330,7 @@ class BasePage:
     def expect_logged_out(self) -> None:
         expect(self.login_or_register_link).to_be_visible()
         expect(self.welcome_link).to_have_count(0)
+        expect(self.logout_link).to_have_count(0)
 
     def expect_welcome_message(self, first_name: str) -> None:
         expect(self.welcome_text).to_have_text(f"Welcome back {first_name}")
@@ -324,6 +343,9 @@ class BasePage:
 
     def expect_login_link_visible(self) -> None:
         expect(self.login_link).to_be_visible()
+
+    def expect_logout_link_absent(self) -> None:
+        expect(self.logout_link).to_have_count(0)
 
     # endregion
     # ==========================================================================================================
