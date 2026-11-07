@@ -26,8 +26,8 @@ def product_page(page: Page) -> ProductPage:
 # region GIVEN
 # ==========================================================================================================
 
-@given("the user opens the store home page for review testing", target_fixture="home_page")
-def open_home_page_for_review_testing(page: Page) -> HomePage:
+@given("the user opens the home page", target_fixture="home_page")
+def open_home_page(page: Page) -> HomePage:
     home_page = HomePage(page)
     home_page.open()
     home_page.expect_loaded()
@@ -41,8 +41,8 @@ def open_home_page_for_review_testing(page: Page) -> HomePage:
 # region WHEN
 # ==========================================================================================================
 
-@when(parsers.parse('the user opens the product "{product_name}"'))
-def open_product(home_page: HomePage, product_page: ProductPage, product_name: str) -> None:
+@when(parsers.parse('the user opens the featured product "{product_name}"'))
+def open_featured_product(home_page: HomePage, product_page: ProductPage, product_name: str) -> None:
     home_page.open_product("featured", product_name)
     product_page.expect_product_name(product_name)
 
@@ -52,8 +52,16 @@ def open_reviews_tab(product_page: ProductPage) -> None:
     product_page.open_reviews_tab()
 
 
-@when("the user submits an empty review")
-def submit_empty_review(product_page: ProductPage) -> None:
+@when(parsers.parse(
+    'the user fills in the review form with name "{name}", rating {rating:d}, '
+    'text "{text}" and CAPTCHA code "{captcha}"'
+))
+def fill_review_form(product_page: ProductPage, name: str, rating: int, text: str, captcha: str) -> None:
+    product_page.write_review(name, text, rating, captcha)
+
+
+@when("the user submits the review form")
+def submit_review_form(product_page: ProductPage) -> None:
     product_page.submit_review()
 
 
@@ -67,6 +75,11 @@ def submit_empty_review(product_page: ProductPage) -> None:
 @then(parsers.parse('the review form shows the error message "{message}"'))
 def review_form_shows_error_message(product_page: ProductPage, message: str) -> None:
     product_page.expect_review_error(message)
+
+
+@then("the product still has no reviews")
+def product_still_has_no_reviews(product_page: ProductPage) -> None:
+    product_page.expect_no_reviews()
 
 # endregion
 # ==========================================================================================================

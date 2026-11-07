@@ -215,7 +215,18 @@ class ProductPage(BasePage):
         self.review_text_input.fill(text)
         self.review_captcha_input.fill(captcha)
 
+    def wait_for_review_captcha(self) -> None:
+        # NOTE FOR ME:
+        # Kod CAPTCHA jest zapisywany w sesji dopiero po pobraniu obrazka - bez tego szybki submit trafia w pustą sesję
+        self.page.wait_for_function(
+            """() => {
+                const img = document.querySelector('#captcha_img');
+                return img && img.complete && img.naturalWidth > 0;
+            }"""
+        )
+
     def submit_review(self) -> None:
+        self.wait_for_review_captcha()
         self.review_submit_button.click()
 
     # --------

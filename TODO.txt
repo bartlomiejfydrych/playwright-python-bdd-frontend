@@ -1,7 +1,7 @@
 Lista rzeczy do zrobienia:
 
 – Pisać `features` i `testy`
-    – Testy wylogowania
+    – Testy działania tagów
     – Czego nie dodałem: sprawdzania, że po wylogowaniu koszyk zostaje zapisany i wraca po ponownym zalogowaniu
      (strona obiecuje to w drugim komunikacie), ani testu przycisku “wstecz” po wylogowaniu. Pierwszy byłby wartościowy,
      drugi może być niestabilny przez cache przeglądarki.
