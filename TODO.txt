@@ -1,7 +1,6 @@
 Lista rzeczy do zrobienia:
 
 – Pisać `features` i `testy`
-    – Testy działania tagów
     – Czego nie dodałem: sprawdzania, że po wylogowaniu koszyk zostaje zapisany i wraca po ponownym zalogowaniu
      (strona obiecuje to w drugim komunikacie), ani testu przycisku “wstecz” po wylogowaniu. Pierwszy byłby wartościowy,
      drugi może być niestabilny przez cache przeglądarki.
@@ -9,7 +8,7 @@ Lista rzeczy do zrobienia:
 – Dodać już projekt na Linkedin i do CV
 – Weryfikować testy aż do skutku
 – Dodać jakąś porównywarkę screenów czy coś
-– Dodać raport Allure
+– Dodać raport Playwright lub Allure
 – Usunąć feature i testy `home_page`
-– Zrobić osobny katalog z testami bez BDD
+– Zrobić osobny katalog z testami Playwright bez otoczki BDD
 – Zaktualizować główne README projektu

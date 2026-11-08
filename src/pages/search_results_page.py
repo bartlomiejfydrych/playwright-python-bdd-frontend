@@ -67,6 +67,15 @@ class SearchResultsPage(BasePage):
     def product_link(self, product_name: str) -> Locator:
         return self.product_names.filter(has_text=product_name)
 
+    def displayed_product_names(self) -> list[str]:
+        # The same product link can occur more than once in the DOM (see expect_product_displayed),
+        # so we compare unique names (only visible ones, empty texts skipped).
+        # NOTE FOR ME:
+        # all_text_contents() zamiast all_inner_texts(): sklep wyświetla nazwy WIELKIMI literami przez CSS
+        # (text-transform: uppercase), a inner_text zwraca tekst już po tej transformacji
+        texts = self.product_names.filter(visible=True).all_text_contents()
+        return sorted({text.strip() for text in texts if text.strip()})
+
     def message(self, text: str) -> Locator:
         # Scoped to the main container so the header/footer can never produce a false match
         return self.page.locator("#maincontainer").get_by_text(text)
@@ -100,6 +109,13 @@ class SearchResultsPage(BasePage):
         self.expect_loaded()
         # nth() is lazy, so the assertion waits until the n-th result actually appears
         expect(self.product_names.nth(count - 1)).to_be_visible()
+
+    def expect_only_products(self, product_names: list[str]) -> None:
+        self.expect_loaded()
+        # Wait for the first result, then read the whole list (the page is rendered server-side)
+        expect(self.product_names.first).to_be_visible()
+        actual = self.displayed_product_names()
+        assert actual == sorted(product_names), f"Expected products: {sorted(product_names)}, displayed: {actual}"
 
     def expect_no_products(self) -> None:
         self.expect_loaded()

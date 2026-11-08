@@ -138,7 +138,7 @@ class ProductPage(BasePage):
         return self.breadcrumbs.filter(has_text=name)
 
     def tag_link(self, name: str) -> Locator:
-        return self.tags.filter(has_text=name)
+        return self.tags.filter(has_text=re.compile(rf"^\s*{re.escape(name)}\s*$"))
 
     def latest_product_link(self, name: str) -> Locator:
         return self.latest_product_links.filter(has_text=name)
@@ -197,7 +197,6 @@ class ProductPage(BasePage):
         self.tab_tags.click()
 
     def click_tag(self, name: str) -> None:
-        self.open_tags_tab()
         self.tag_link(name).click()
 
     # ----------------
