@@ -117,9 +117,8 @@ class CheckoutConfirmationPage(BasePage):
 
     @staticmethod
     def expected_address() -> str:
-        # Empty optional parts (company, address 2) are skipped
+        # The company is not shown in the address block, only in the contact data; empty address 2 is skipped
         parts = [
-            config.get_account_company(),
             config.get_account_address_1(),
             config.get_account_address_2(),
             f"{config.get_account_city()} {config.get_account_region_state()} {config.get_account_zip_code()}",
