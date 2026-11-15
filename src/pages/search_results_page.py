@@ -67,9 +67,6 @@ class SearchResultsPage(BasePage):
     def product_link(self, product_name: str) -> Locator:
         return self.product_names.filter(has_text=product_name)
 
-    def open_product(self, product_name: str) -> None:
-        self.product_link(product_name).first.click()
-
     def displayed_product_names(self) -> list[str]:
         # The same product link can occur more than once in the DOM (see expect_product_displayed),
         # so we compare unique names (only visible ones, empty texts skipped).

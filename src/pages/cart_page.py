@@ -119,7 +119,8 @@ class CartPage(BasePage):
         return self.cart_row(product_name).locator("td:nth-child(2) small")
 
     def total_row(self, label: str) -> Locator:
-        return self.total_rows.filter(has_text=label)
+        # Anchored regex: a plain has_text="Total:" would also match the "Sub-Total:" row
+        return self.total_rows.filter(has_text=re.compile(rf"^\s*{re.escape(label)}"))
 
     def total_value(self, label: str) -> Locator:
         return self.total_row(label).locator("td:nth-child(2)")
@@ -200,8 +201,8 @@ class CartPage(BasePage):
 
     @staticmethod
     def price_to_float(text: str) -> float:
-        """'$1,029.50' ➤ 1029.5"""
-        return float(text.replace("$", "").replace("€", "").replace(",", "").strip())
+        """'$1,029.50' / '1,029.50€' ➤ 1029.5 (currency symbol independent, keeps the minus sign)"""
+        return float(re.sub(r"[^\d.\-]", "", text))
 
     def heading_text(self) -> str:
         return self.heading.inner_text().strip()
@@ -280,14 +281,27 @@ class CartPage(BasePage):
         expect(self.quantity_input(product_name)).to_have_value(str(quantity))
 
     def expect_line_total(self, product_name: str, amount: str) -> None:
-        """amount as on the page, e.g. '$56.00'"""
+        """amount as on the page, e.g. '56.00€'"""
         expect(self.cart_row(product_name).locator("td:nth-child(6)")).to_have_text(amount)
 
     def expect_subtotal(self, amount: str) -> None:
         expect(self.total_value(self.SUBTOTAL_LABEL)).to_have_text(amount)
 
+    def expect_shipping(self, amount: str) -> None:
+        expect(self.total_value(self.SHIPPING_LABEL)).to_have_text(amount)
+
     def expect_total(self, amount: str) -> None:
         expect(self.total_value(self.TOTAL_LABEL)).to_have_text(amount)
+
+    def expect_totals(self, subtotal: str, shipping: str, total: str) -> None:
+        self.expect_subtotal(subtotal)
+        self.expect_shipping(shipping)
+        self.expect_total(total)
+
+    def expect_product_row(self, product_name: str, quantity: int, line_total: str) -> None:
+        self.expect_product_in_cart(product_name)
+        self.expect_quantity(product_name, quantity)
+        self.expect_line_total(product_name, line_total)
 
     def expect_coupon_applied(self) -> None:
         expect(self.remove_coupon_button).to_be_visible()
