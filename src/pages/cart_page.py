@@ -201,7 +201,7 @@ class CartPage(BasePage):
     @staticmethod
     def price_to_float(text: str) -> float:
         """'$1,029.50' ➤ 1029.5"""
-        return float(text.replace("$", "").replace(",", "").strip())
+        return float(text.replace("$", "").replace("€", "").replace(",", "").strip())
 
     def heading_text(self) -> str:
         return self.heading.inner_text().strip()
