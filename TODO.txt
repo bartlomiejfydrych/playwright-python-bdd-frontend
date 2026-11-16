@@ -1,11 +1,7 @@
 Lista rzeczy do zrobienia:
 
-– Pisać `features` i `testy`
-    – Czego nie dodałem: sprawdzania, że po wylogowaniu koszyk zostaje zapisany i wraca po ponownym zalogowaniu
-     (strona obiecuje to w drugim komunikacie), ani testu przycisku “wstecz” po wylogowaniu. Pierwszy byłby wartościowy,
-     drugi może być niestabilny przez cache przeglądarki.
-– Weryfikować testy aż do skutku
-– Sprawdzić odpalanie równoległe
+– Odpalać wszystkie testy i poprawiać aż do skutku
+– Rozważyć i sprawdzić możliwości odpalania równoległego
 – Dodać jakąś porównywarkę screenów czy coś
 – Dodać raport Playwright lub Allure
 – Usunąć feature i testy `home_page`

@@ -6,10 +6,13 @@ from playwright.sync_api import Page, Playwright
 from pytest_bdd import given, parsers, scenarios, then, when
 
 from src.api.auth import login_via_api
+from src.configuration.config import get_account_login_name, get_account_password
 from src.pages.account.account_dashboard_page import AccountDashboardPage
+from src.pages.cart_page import CartPage
 from src.pages.home_page import HomePage
 from src.pages.login_page import LoginPage
 from src.pages.logout_page import LogoutPage
+from src.pages.product_page import ProductPage
 
 scenarios(str(Path(__file__).resolve().parents[1] / "features" / "logout.feature"))
 
@@ -62,6 +65,47 @@ def login_page(own_session_page: Page) -> LoginPage:
     return LoginPage(own_session_page)
 
 
+@pytest.fixture
+def product_page(own_session_page: Page) -> ProductPage:
+    return ProductPage(own_session_page)
+
+
+@pytest.fixture
+def cart_page(own_session_page: Page) -> CartPage:
+    return CartPage(own_session_page)
+
+
+@pytest.fixture
+def basket_cleanup(
+        own_session_page: Page, playwright: Playwright, base_url: str, new_context
+) -> Iterator[None]:
+    """
+    Empties the basket after the test, even when it failed halfway (e.g. while logged out).
+
+    NOTE FOR ME: Sprzątamy przez NOWE logowanie API, bo `own_session_page` może być w tym momencie wylogowana.
+    Zależność od `own_session_page` gwarantuje, że ta fixture kończy się PRZED jej `auth_session.refresh()`.
+    """
+    yield
+    state = login_via_api(playwright, base_url)
+    cart = CartPage(new_context(storage_state=state).new_page())
+    cart.open()
+    if cart.cart_rows.count():
+        cart.remove_all_products()
+    cart.expect_empty_cart()
+
+
+# endregion
+# ==========================================================================================================
+
+# ==========================================================================================================
+# region HELPERS
+# ==========================================================================================================
+
+def _table_rows(datatable) -> list[dict[str, str]]:
+    # datatable: first row = header, the rest = data rows
+    return [dict(zip(datatable[0], row)) for row in datatable[1:]]
+
+
 # endregion
 # ==========================================================================================================
 
@@ -74,6 +118,19 @@ def customer_is_logged_in_on_account_dashboard(account_dashboard_page: AccountDa
     account_dashboard_page.open()
     account_dashboard_page.expect_loaded()
     account_dashboard_page.expect_logged_in()
+
+
+@given("the customer is logged in and has an empty basket")
+def customer_logged_in_with_empty_basket(home_page: HomePage, cart_page: CartPage, basket_cleanup: None) -> None:
+    home_page.open()
+    home_page.expect_loaded()
+    home_page.expect_logged_in()
+
+    # A basket left over from a previous run would break the checks below
+    cart_page.open()
+    if cart_page.cart_rows.count():
+        cart_page.remove_all_products()
+    cart_page.expect_empty_cart()
 
 
 # endregion
@@ -106,6 +163,31 @@ def go_back_in_browser(logout_page: LogoutPage) -> None:
 @when("the customer opens the Account Dashboard directly")
 def open_account_dashboard_directly(account_dashboard_page: AccountDashboardPage) -> None:
     account_dashboard_page.open()
+
+
+@when("the customer adds these featured products to the basket:")
+def customer_adds_featured_products(
+        home_page: HomePage, product_page: ProductPage, cart_page: CartPage, datatable
+) -> None:
+    for row in _table_rows(datatable):
+        home_page.open()
+        home_page.expect_loaded()
+        home_page.open_product("featured", row["product"])
+        product_page.expect_product_name(row["product"])
+        product_page.add_to_cart(int(row["quantity"]))
+        cart_page.expect_loaded()
+
+
+@when("the customer logs in again with the configured credentials")
+def customer_logs_in_again(login_page: LoginPage) -> None:
+    login_page.open()
+    login_page.login(get_account_login_name(), get_account_password())
+
+
+@when("the customer opens the basket")
+def customer_opens_basket(cart_page: CartPage) -> None:
+    cart_page.click_cart()
+    cart_page.expect_loaded()
 
 
 # endregion
@@ -145,6 +227,21 @@ def login_page_is_displayed(login_page: LoginPage) -> None:
 @then("the customer is not logged in")
 def customer_is_not_logged_in(login_page: LoginPage) -> None:
     login_page.expect_logged_out()
+
+
+@then("the customer is logged in")
+def customer_is_logged_in(login_page: LoginPage) -> None:
+    login_page.expect_logged_in()
+
+
+@then("the basket contains these products:")
+def basket_contains_these_products(cart_page: CartPage, datatable) -> None:
+    rows = _table_rows(datatable)
+    cart_page.expect_loaded()
+    cart_page.expect_products_count(len(rows))
+    for row in rows:
+        cart_page.expect_product_in_cart(row["product"])
+        cart_page.expect_quantity(row["product"], int(row["quantity"]))
 
 # endregion
 # ==========================================================================================================

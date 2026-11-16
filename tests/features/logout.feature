@@ -21,11 +21,11 @@ Feature: Logout
     And the LOGOUT option is not displayed in the ACCOUNT menu
 
     Examples:
-      | method                               |
-      | Account Dashboard side menu: Logoff  |
-      | ACCOUNT menu: LOGOUT                 |
-      | welcome message menu: Logoff         |
-      | footer: Logoff                       |
+      | method                              |
+      | Account Dashboard side menu: Logoff |
+      | ACCOUNT menu: LOGOUT                |
+      | welcome message menu: Logoff        |
+      | footer: Logoff                      |
 
   # ==========================================================================================
   # SECURITY
@@ -47,3 +47,28 @@ Feature: Logout
     When the customer goes back in the browser
     Then the Login page is displayed
     And the customer is not logged in
+
+  # ==========================================================================================
+  # CART
+  # ==========================================================================================
+
+  @positive @cart
+  Scenario: Basket contents are restored after logging out and logging back in
+    Given the customer is logged in and has an empty basket
+    When the customer adds these featured products to the basket:
+      | product                 | quantity |
+      | Skinsheen Bronzer Stick | 3        |
+      | Benefit Bella Bamba     | 2        |
+    Then the basket contains these products:
+      | product                 | quantity |
+      | Skinsheen Bronzer Stick | 3        |
+      | Benefit Bella Bamba     | 2        |
+    When the customer logs out using "ACCOUNT menu: LOGOUT"
+    Then the Account Logout page is displayed with the confirmation messages
+    When the customer logs in again with the configured credentials
+    Then the customer is logged in
+    When the customer opens the basket
+    Then the basket contains these products:
+      | product                 | quantity |
+      | Skinsheen Bronzer Stick | 3        |
+      | Benefit Bella Bamba     | 2        |
