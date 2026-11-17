@@ -162,6 +162,8 @@ class ProductPage(BasePage):
         self.add_to_cart_button.click()
 
     def add_to_wish_list(self) -> None:
+        # NOTE FOR ME: Kliknięcie przed zakończeniem ładowania strony wykonuje zwykłą nawigację pod href zamiast AJAX-a
+        self.page.wait_for_load_state("load")
         self.add_to_wish_list_button.click()
 
     def click_print(self) -> None:
@@ -225,6 +227,9 @@ class ProductPage(BasePage):
         )
 
     def submit_review(self) -> None:
+        # NOTE FOR ME: Kliknięcie przed zakończeniem ładowania strony trafia w przycisk bez podpiętego handlera AJAX
+        # (działa tylko blokada `lock-on-click`), więc formularz nigdy nie jest wysyłany
+        self.page.wait_for_load_state("load")
         self.wait_for_review_captcha()
         self.review_submit_button.click()
 
