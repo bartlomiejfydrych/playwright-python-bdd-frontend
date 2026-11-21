@@ -4,6 +4,12 @@ from playwright.sync_api import Page, Playwright, StorageState
 from src.api.auth import login_via_api
 
 
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    # Fixed window size, so that screenshots always have the same dimensions
+    return {**browser_context_args, "viewport": {"width": 1920, "height": 1080}}
+
+
 class AuthSession:
     """
     Storage state shared by all tests (one API login per run) that can be refreshed.

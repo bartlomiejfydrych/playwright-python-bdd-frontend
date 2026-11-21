@@ -1,10 +1,10 @@
 Lista rzeczy do zrobienia:
 
-– Odpalać wszystkie testy i poprawiać aż do skutku
-– Rozważyć i sprawdzić możliwości odpalania równoległego
-– Dodać jakąś porównywarkę screenów czy coś
+– Zrobić notatki z konfigurowania porównywarki screenów
+– Dodać jakąś porównywarkę screenów i dostosować pod nią testy
 – Dodać raport Playwright lub Allure
 – Usunąć feature i testy `home_page`
 – Zrobić osobny katalog z testami Playwright bez otoczki BDD
 – Zaktualizować główne README projektu
 – Dodać już projekt na Linkedin i do CV
+– Zrobić notatki wyjaśniające kod projektu

@@ -20,6 +20,7 @@
    - [pytest-bdd](#pytest-bdd)
    - [playwright install](#playwright-install)
    - [Faker](#faker)
+   - [pytest-playwright-visual-snapshot](#pytest-playwright-visual-snapshot)
    - [allure-pytest-bdd](#allure-pytest-bdd)
 
 ---
@@ -162,6 +163,7 @@ Dodaj `venv/` do `.gitignore`.
    - **pytest-bdd** – To obsługa plików `.feature` (Gherkin) w pytest. Kroki możesz pisać jako zwykłe funkcje i wstrzykiwać do nich fixture `page` z Playwrighta.
    - **playwright install** – Pobiera binaria przeglądarek (Chromium, Firefox, WebKit). To osobny krok, bo `pip` ich nie instaluje. Możesz też podać konkretną: `playwright install chromium`.
    - **Faker** – Generator danych testowych (`pip install Faker`)
+   - **pytest-playwright-visual-snapshot** – Plugin **pytesta** umożliwiający wykonywanie i porównywanie screenów (`pip install pytest-playwright-visual-snapshot`)
    - **allure-pytest-bdd** 🔴TODO: Zainstalować w połowie lub na koniec projektu i opisać
 8. Po instalacji generujemy plik z zależnościami (To taki odpowiednik `pom.xml` z Javy):
    ```bash
@@ -2195,6 +2197,249 @@ fake.user_name()
 **Faker** – biblioteka Pythona służąca do generowania losowych, realistycznych danych testowych, takich jak imiona,
 nazwiska, adresy, e-maile, numery telefonów, daty czy dane firmowe. Jest powszechnie wykorzystywana w automatyzacji
 testów, przygotowywaniu danych testowych oraz seedowaniu baz danych.
+
+---
+
+## 📕pytest-playwright-visual-snapshot
+
+`pytest-playwright-visual-snapshot` to plugin dla `pytest`, który umożliwia wykonywanie **testów wizualnych
+(Visual Regression Testing)** z wykorzystaniem Playwright.
+
+Jego głównym zadaniem jest porównywanie aktualnego wyglądu strony internetowej z wcześniej zapisanym zrzutem ekranu (*snapshotem*).
+
+Dzięki temu możesz wykryć zmiany wizualne, które niekoniecznie powodują błędy funkcjonalne, np.:
+
+- przesunięcie przycisku,
+- zmianę rozmiaru elementu,
+- zniknięcie obrazka,
+- zmianę koloru tła,
+- nieprawidłowe rozmieszczenie komponentów,
+- zmianę wyglądu całej strony.
+
+To właśnie **Visual Regression Testing** – testowanie regresji wizualnej.
+
+### 1. Instalacja
+
+Instalujesz plugin za pomocą:
+
+```
+pip install pytest-playwright-visual-snapshot
+```
+
+Plugin wymaga Pythona w wersji 3.11 lub nowszej. Automatycznie korzysta z `pytest-playwright`, a także z bibliotek
+odpowiedzialnych za przetwarzanie i porównywanie obrazów.
+
+Jeżeli nie masz jeszcze zainstalowanej przeglądarki:
+
+```
+playwright install chromium
+```
+
+### 2. Jak działa Visual Regression Testing?
+
+Załóżmy, że testujesz stronę logowania.
+
+Pierwsze uruchomienie testu zapisuje wygląd strony jako wzorcowy obraz.
+
+Przy kolejnym uruchomieniu plugin wykonuje następny screenshot i porównuje go z zapisanym wzorcem.
+
+**Przykład porównania**
+
+Expected  
+Wzorcowy screenshot
+
+Actual  
+Aktualny screenshot
+
+**Visual mismatch** – wykryto różnice w wyglądzie.
+
+Jeśli wygląd jest zgodny z ustalonym poziomem tolerancji, test przechodzi. Jeżeli różnice przekraczają tolerancję, test
+kończy się niepowodzeniem.
+
+### 3. Podstawowe użycie
+
+Plugin udostępnia fixture `assert_snapshot`, która odpowiada za wykonanie screenshotu i porównanie go z zapisanym wzorcem.
+
+Przykład:
+
+```python
+def test_homepage(page, assert_snapshot):
+    page.goto("https://example.com")
+
+    assert_snapshot(page)
+```
+
+W tym przykładzie:
+
+1. Playwright otwiera stronę.
+2. `assert_snapshot(page)` wykonuje screenshot.
+3. Jeżeli nie istnieje jeszcze wzorzec, zostaje utworzony.
+4. Przy kolejnych uruchomieniach aktualny screenshot jest porównywany z zapisanym.
+
+Nie musisz samodzielnie implementować mechanizmu porównywania obrazów.
+
+### 4. Pierwsze uruchomienie i aktualizacja snapshotów
+
+To jeden z ważniejszych aspektów działania pluginu.
+
+**Pierwsze uruchomienie:**
+
+```
+pytest
+```
+
+Plugin tworzy wzorcowe screenshoty, ale test kończy się niepowodzeniem z komunikatem informującym o utworzeniu nowych snapshotów.
+
+To celowe zachowanie – tester powinien najpierw sprawdzić, czy zapisany obraz rzeczywiście przedstawia oczekiwany wygląd aplikacji.
+
+**Kolejne uruchomienia:**
+
+```
+pytest
+```
+
+Plugin porównuje aktualne screenshoty z zapisanymi wzorcami.
+
+**Aktualizacja snapshotów:**
+
+```
+pytest --update-snapshots
+```
+
+Pozwala zaktualizować wzorcowe obrazy. Test również kończy się niepowodzeniem, aby wymusić ręczną weryfikację zmian.
+
+To zabezpieczenie przed przypadkowym zaakceptowaniem niepożądanych zmian wizualnych.
+
+### 5. Co się dzieje, gdy plugin wykryje różnice?
+
+W przypadku niezgodności tworzony jest katalog `snapshot_tests_failures`, zawierający trzy obrazy:
+
+| Plik           | Znaczenie                             |
+| -------------- | ------------------------------------- |
+| `expected_...` | zapisany wzorcowy screenshot          |
+| `actual_...`   | aktualny screenshot                   |
+| `diff_...`     | obraz przedstawiający wykryte różnice |
+
+Dzięki temu możesz szybko zobaczyć, co dokładnie zmieniło się na stronie.
+
+### 6. Tolerancja porównywania
+
+Nie zawsze dwa screenshoty będą identyczne piksel po pikselu.
+
+Mogą wystąpić niewielkie różnice wynikające np. z renderowania tekstu czy antyaliasingu.
+
+Plugin udostępnia parametr `threshold`, który określa tolerancję porównania w zakresie od `0` do `1`. Domyślna wartość to `0.1`.
+
+Możesz również użyć `fail_fast`, aby test zakończył się już po wykryciu pierwszego różniącego się piksela.
+
+Przykładowo:
+
+```python
+def test_homepage(page, assert_snapshot):
+    page.goto("https://example.com")
+
+    assert_snapshot(
+        page,
+        threshold=0.05,
+        fail_fast=True
+    )
+```
+
+Niższa tolerancja oznacza bardziej rygorystyczne porównywanie.
+
+### 7. Maskowanie dynamicznych elementów
+
+Wyobraź sobie, że testujesz stronę zawierającą:
+
+- aktualną datę i godzinę,
+- awatar użytkownika,
+- dynamiczne reklamy,
+- zmieniające się informacje o liczbie produktów.
+
+Takie elementy mogą powodować niepotrzebne błędy porównania, nawet jeśli właściwy wygląd aplikacji się nie zmienił.
+
+Plugin pozwala je zamaskować.
+
+```python
+def test_homepage(page, assert_snapshot):
+    page.goto("https://example.com")
+
+    assert_snapshot(
+        page,
+        mask_elements=[
+            ".timestamp",
+            ".user-avatar",
+            "#dynamic-content"
+        ]
+    )
+```
+
+Podane elementy zostaną zamaskowane podczas wykonywania screenshotu i nie będą wpływały na porównanie w zwykły sposób.
+
+Można też skonfigurować globalne maski w `pytest.ini`.
+
+### 8. Przydatne opcje CLI
+
+| Opcja                        | Działanie                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `--update-snapshots`         | aktualizuje wzorcowe screenshoty                                                         |
+| `--ignore-size-diff`         | pozwala wygenerować obrazy porównawcze również wtedy, gdy screenshoty mają różne wymiary |
+| `--disable-visual-snapshots` | wyłącza porównywanie snapshotów                                                          |
+
+Przykład:
+
+```
+pytest --disable-visual-snapshots
+```
+
+Może być przydatne np. podczas lokalnego uruchamiania testów, kiedy nie potrzebujesz kontroli wizualnej.
+
+### `pytest-playwright-visual-snapshot` a `pytest-playwright`
+
+To dwie różne rzeczy:
+
+| Plugin                              | Zastosowanie                                               |
+| ----------------------------------- | ---------------------------------------------------------- |
+| `pytest-playwright`                 | automatyzacja przeglądarki i testy UI                      |
+| `pytest-playwright-visual-snapshot` | porównywanie screenshotów i wykrywanie regresji wizualnych |
+
+Możesz używać ich razem.
+
+Przykładowa architektura:
+
+```
+pytest
+  │
+  ├── pytest-playwright
+  │      └── Playwright
+  │             └── Browser
+  │
+  └── pytest-playwright-visual-snapshot
+         └── Screenshot comparison
+                ├── Expected
+                ├── Actual
+                └── Diff
+```
+
+### 10. Kiedy warto go używać?
+
+W Twoim projekcie testującym Automation Test Store mógłbyś wykorzystać go np. do:
+
+- sprawdzania wyglądu strony głównej,
+- kontroli wyglądu strony logowania,
+- sprawdzania układu kategorii produktów,
+- wykrywania zmian w wyglądzie kart produktów,
+- kontroli wyglądu koszyka.
+
+Ważne: testy wizualne nie zastępują zwykłych asercji funkcjonalnych. Przykładowo screenshot nie potwierdzi, że przycisk
+logowania rzeczywiście loguje użytkownika.
+
+### Krótka definicja do notatek
+
+> **pytest-playwright-visual-snapshot** – plugin pytest integrujący Playwright z testowaniem regresji wizualnej
+> (Visual Regression Testing). Udostępnia fixture `assert_snapshot`, która wykonuje screenshoty i porównuje
+> je z zapisanymi wzorcami, wykrywając niepożądane zmiany w wyglądzie aplikacji. Obsługuje tolerancję porównania,
+> maskowanie dynamicznych elementów oraz generowanie obrazów `expected`, `actual` i `diff`.
 
 ---
 

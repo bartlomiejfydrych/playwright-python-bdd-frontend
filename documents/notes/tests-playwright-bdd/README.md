@@ -15,6 +15,7 @@
 - [PROBLEM: Brak SZCZEGÓŁOWYCH logów kroków BDD w konsoli](#problem-brak-szczegółowych-logów-kroków-bdd-w-konsoli)
 - [PROBLEM: Nietypowa ścieżka projektu blokuje uruchamianie plików Python przez IDE](#problem-nietypowa-ścieżka-projektu-blokuje-uruchamianie-plików-python-przez-ide)
 - [Base Page vs. Home Page – Czym się różnią](#base-page-vs-home-page--czym-się-różnią)
+- [pytest-playwright-visual-snapshot – Konfiguracja porównywarki screenów](#pytest-playwright-visual-snapshot--konfiguracja-porównywarki-screenów)
 
 ---
 
@@ -475,3 +476,200 @@ Elementy, które powtarzają się na każdej podstronie, piszesz raz w `BasePage
 
 Teraz mam je w `HomePage`, więc przy dodaniu `LoginPage` trzeba by je skopiować. Lepiej je tam przenieść, a w `HomePage`
 zostawić tylko to, co jest unikalne dla strony głównej: sekcje produktowe, baner, promo, karuzelę marek, testimoniale.
+
+---
+
+# 📄pytest-playwright-visual-snapshot – Konfiguracja porównywarki screenów
+
+Notatki z konfiguracji testów wizualnych w projekcie `playwright-python-bdd-frontend`
+(Python + Playwright + pytest + pytest-bdd).
+
+## 1. Po co to wszystko
+
+Dotychczasowe testy sprawdzały głównie **funkcjonalność** Frontendu (kliknięcia, teksty, przepływy).
+Brakowało sprawdzania **wyglądu** strony.
+
+- Asercje na właściwości CSS całej strony nie mają sensu: jest ich mnóstwo, są kruche i nie mówią, jak strona
+  naprawdę wygląda.
+- Lepszy sposób to **porównywanie zrzutów ekranu** (visual regression): test robi screenshot elementu lub strony
+  i porównuje go piksel po pikselu z zapisanym wcześniej **wzorcem** (baseline). Różnica ➤ test się wywala
+  i pokazuje obraz z zaznaczonymi zmianami.
+
+### Dlaczego wtyczka, a nie wbudowane narzędzie
+
+- W Playwright dla **Node/TypeScript** jest wbudowane `expect(page).toHaveScreenshot()`.
+- W Playwright dla **Pythona nie ma** odpowiednika. Są tylko `page.screenshot()` i `locator.screenshot()`,
+  a porównanie trzeba zrobić samemu albo użyć gotowej biblioteki.
+- Wybrane rozwiązanie: **`pytest-playwright-visual-snapshot`**. Daje fixture `assert_snapshot`, zapisuje wzorce,
+  porównuje i generuje obrazy z różnicami.
+  Alternatywy, których nie wybraliśmy: własny helper na Pillow, usługi zewnętrzne (Percy, Applitools, Argos, Lost
+  Pixel).
+
+### Co to jest „wtyczka" w tym przypadku
+
+To zwykła paczka z PyPI i instaluje się jak każda zależność (`pip install` + wpis w `requirements.txt`).
+Nazywa się **pluginem pytesta**, bo rejestruje się w pytescie sama (entry points). Po instalacji fixture
+`assert_snapshot` i opcja `--update-snapshots` są dostępne bez żadnego `import` ani wpisu w `conftest.py`.
+Tak samo działają `pytest-playwright` i `pytest-bdd`.
+
+## 2. Instalacja
+
+Wymagania: Python **3.11+**. Sprawdzone z: pytest 9.1.1, Playwright 1.63, pytest-playwright 0.9.0, pytest-bdd 8.1.0.
+
+1. Aktywuj venv projektu (Windows):
+   ```
+   .venv\Scripts\activate
+   ```
+2. Zainstaluj paczkę:
+   ```
+   pip install pytest-playwright-visual-snapshot==0.5.1
+   ```
+   Wciągnie też: `pillow`, `pixelmatch`, `structlog-config`.
+3. Sprawdź, czy pytest ją wykrył:
+   ```
+   pytest --help | findstr snapshot
+   ```
+   Powinna być widoczna opcja `--update-snapshots` i ustawienia `playwright_visual_snapshot_*`.
+4. Dopisz **ręcznie** jedną linię do `requirements.txt`:
+   ```
+   pytest-playwright-visual-snapshot==0.5.1
+   ```
+   Ręcznie, bo `pip freeze > requirements.txt` potrafi przepisać cały plik w innym formacie.
+   Po zmianie sprawdź `git diff`, czy zmieniła się tylko ta jedna linia.
+
+## 3. Konfiguracja (4 punkty)
+
+Wtyczka działa na ustawieniach domyślnych, ale te 4 rzeczy warto ustawić **przed** wygenerowaniem
+pierwszych wzorców, bo późniejsza zmiana oznacza ich ponowne generowanie lub porządki.
+
+### 3.1. Stały viewport – `tests/conftest.py`
+
+```python
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    # Fixed window size, so that screenshots always have the same dimensions
+    return {**browser_context_args, "viewport": {"width": 1920, "height": 1080}}
+```
+
+**Po co:** bez stałego viewportu rozmiar zrzutu zależy od okna przeglądarki. Gdy rozmiar się zmieni,
+porównanie kończy się błędem różnicy wymiarów zamiast czytelnego diffu.
+
+**Jak działa:** `browser_context_args` to fixture z `pytest-playwright` zbierające opcje kontekstu przeglądarki.
+Nasza wersja o tej samej nazwie je nadpisuje, ale przez `**browser_context_args` zachowuje wcześniejsze
+ustawienia (np. `base_url`) i tylko dokłada `viewport`. Fixture `new_context` (używany w `logged_in_page`)
+też z niego korzysta, więc zalogowane strony dostają ten sam viewport automatycznie.
+
+**Rozmiar:** 1920×1080 to najczęstsza rozdzielczość pulpitu. Domyślny viewport Playwrighta to 1280×720.
+Ważniejsze od wartości jest to, żeby była **stała**. Jej zmiana później = ponowne generowanie wszystkich wzorców. (Jeśli
+wybrałeś inny rozmiar, popraw go tutaj.)
+
+### 3.2. Ścieżki wzorców – `pytest.ini`
+
+W sekcji `SYSTEM CONFIGURATION`, po linii `pythonpath = .`:
+
+```ini
+# Ustawienia pluginu `pytest-playwright-visual-snapshot`. Wzorce (baseline) trzymamy obok testów i commitujemy do repo.
+playwright_visual_snapshots_path = tests/snapshots
+# Obrazy z nieudanych porównań (actual, expected, diff). Ten katalog jest w .gitignore i czyści się przy każdym uruchomieniu.
+playwright_visual_snapshot_failures_path = snapshot_failures
+```
+
+**Po co:** wzorce lądują w `tests/snapshots/<plik_testu>/<nazwa_testu>/`, a nie w domyślnym `__snapshots__`
+w katalogu głównym. Katalog z błędami ma jawną nazwę zgodną z `.gitignore`.
+
+**Uwagi:**
+
+- Ścieżki liczone są od katalogu głównego repo (tam, gdzie `pytest.ini`), więc pytest uruchamiamy stamtąd.
+- Wtyczka **czyści** `snapshot_failures` na początku każdego uruchomienia, więc nie trzymamy tam nic cennego.
+- Katalogów `tests/snapshots` i `snapshot_failures` **nie tworzymy ręcznie**. Wtyczka zrobi to sama,
+  a Git i tak nie śledzi pustych katalogów.
+
+### 3.3. `.gitignore`
+
+W sekcji `MY FILES`, pod `temp`:
+
+```
+temp
+snapshot_failures
+```
+
+**Po co:** obrazy z nieudanych porównań (`actual_`, `expected_`, `diff_`) powstają przy każdym uruchomieniu
+i nie mają trafiać do repo.
+
+**Wzorce (`tests/snapshots/`) commitujemy.** Sprawdzone: `.gitignore` nie ma wzorców typu `*.png`
+ani `snapshots`, więc te pliki nie będą ignorowane.
+
+### 3.4. Marker `visual` – `pytest.ini`
+
+W sekcji `markers =`, na końcu listy (wcięcie 4 spacje):
+
+```ini
+    cart
+    visual
+```
+
+**Po co:** bez rejestracji pytest ostrzega o nieznanym markerze (`PytestUnknownMarkWarning`) przy każdym
+scenariuszu z tagiem `@visual`. Marker pozwala też uruchamiać testy wizualne osobno:
+
+```
+pytest -m visual
+pytest -m "not visual"
+```
+
+### Szybka kontrola po konfiguracji
+
+```
+pytest --collect-only -q
+```
+
+Nie powinno być żadnych błędów konfiguracji.
+
+## 4. Jak to działa w użyciu (do zapamiętania)
+
+Podstawowe użycie w teście:
+
+```python
+def test_cos(page, assert_snapshot):
+    page.goto("/")
+    assert_snapshot(page)  # cała strona
+    assert_snapshot(locator)  # pojedynczy element
+```
+
+W testach BDD wywołanie ląduje w kroku (`@then`), a `assert_snapshot` jest dostępny jako fixture.
+
+| Sytuacja                        | Co się dzieje                                                                                                                 |
+|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| **Pierwsze uruchomienie** testu | Zapisuje wzorzec i test **specjalnie się wywala** („New snapshot(s) created"). Obejrzyj obraz, zacommituj i uruchom ponownie. |
+| **Kolejne uruchomienia**        | Porównuje z wzorcem. Przy różnicy w `snapshot_failures/` pojawiają się `actual_`, `expected_` i `diff_`.                      |
+| **Świadoma zmiana wyglądu**     | `pytest -m visual --update-snapshots`, potem przegląd obrazów i commit.                                                       |
+
+### Dobre praktyki i pułapki
+
+- **Wzorce są osobne dla każdego systemu** (w nazwie pliku jest `win32` lub `linux`). Wzorce z Windowsa
+  nie zadziałają na Linuxie, np. w CI. Tam trzeba wygenerować własne (fonty i antyaliasing się różnią).
+- **`threshold` (domyślnie 0.1)** to czułość porównania koloru pojedynczego piksela, a **nie** dopuszczalny
+  procent różnic. Można go podać na wywołanie: `assert_snapshot(..., threshold=0.2)`.
+- **Strona jest zewnętrzna** (automationteststore.com) i może mieć zmienną treść (baner, karuzela, polecane
+  produkty). Dlatego:
+    - porównujemy raczej **komponenty** (`locator`) niż całe strony,
+    - zmienne fragmenty **maskujemy**: `assert_snapshot(el, mask_elements=["#selektor"])`
+      albo globalnie w `pytest.ini` przez `playwright_visual_snapshot_masks`.
+- Przed zrzutem warto poczekać, aż obrazy się załadują (np. `page.wait_for_load_state("networkidle")`).
+- Wtyczka wyłącza animacje na czas zrzutu (`animations="disabled"`).
+- Opcje, które mogą się przydać: `--ignore-size-diff` (diff nawet przy zmianie wymiarów obrazu),
+  `--disable-visual-snapshots` (pominięcie asercji wizualnych).
+
+## 5. Podsumowanie zmian w repo
+
+| Plik                | Zmiana                                                                                                       |
+|---------------------|--------------------------------------------------------------------------------------------------------------|
+| `requirements.txt`  | `pytest-playwright-visual-snapshot==0.5.1`                                                                   |
+| `tests/conftest.py` | fixture `browser_context_args` ze stałym viewportem                                                          |
+| `pytest.ini`        | 2 ścieżki (`playwright_visual_snapshots_path`, `playwright_visual_snapshot_failures_path`) + marker `visual` |
+| `.gitignore`        | `snapshot_failures`                                                                                          |
+
+## 6. Co dalej
+
+- Napisać pierwsze testy wizualne (feature + kroki z `assert_snapshot`) i wygenerować wzorce.
+- Zdecydować, które komponenty i strony porównywać oraz co maskować.
+- Jeśli pojawi się CI na Linuxie: wygenerować tam osobne wzorce, najlepiej w tym samym środowisku (np. Docker).
