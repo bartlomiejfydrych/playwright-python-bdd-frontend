@@ -1,3 +1,4 @@
+import sys
 from playwright.sync_api import Locator, Page, expect
 
 
@@ -291,6 +292,19 @@ class BasePage:
     def subscribe_to_newsletter(self, email: str) -> None:
         self.newsletter_email_input.fill(email)
         self.newsletter_submit_button.click()
+
+    # ---------------
+    # Actions: visual
+    # ---------------
+
+    def move_mouse_away(self) -> None:
+        # The mouse stays where the last click was. If it hovers over a button, the screenshot would show the hover colour
+        self.page.mouse.move(0, 0)
+
+    @staticmethod
+    def snapshot_file_name(name: str) -> str:
+        # Same pattern as the plugin default (name[platform].png): baselines differ per system (fonts, antialiasing)
+        return f"{name}[{sys.platform}].png"
 
     # --------
     # Readings

@@ -1,6 +1,5 @@
 Lista rzeczy do zrobienia:
 
-– Zrobić notatki z konfigurowania porównywarki screenów
 – Dodać jakąś porównywarkę screenów i dostosować pod nią testy
 – Dodać raport Playwright lub Allure
 – Usunąć feature i testy `home_page`

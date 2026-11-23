@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.account.account_base_page import AccountBasePage
 
@@ -194,6 +195,16 @@ class AccountManageAddressBookPage(AccountBasePage):
         address = self.entry_containing(marker).locator("address")
         for value in values:
             expect(address).to_contain_text(value)
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_entry_matches_snapshot(self, assert_snapshot: AssertSnapshot, marker: str, name: str) -> None:
+        # Only the one entry (not the whole list): other addresses on the account change over time
+        self.expect_address_listed(marker)
+        self.move_mouse_away()
+        assert_snapshot(self.entry_containing(marker), name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
