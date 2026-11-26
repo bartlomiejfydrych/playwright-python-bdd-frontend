@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.account.account_base_page import AccountBasePage
 
@@ -29,6 +30,10 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     # Form fields: name ➤ input name (id = AccountFrm_<n>)
     FIELDS = ("firstname", "lastname", "email", "telephone", "fax")
     REQUIRED_FIELDS = ("firstname", "lastname", "email")
+
+    # Visual tests: the login name (read-only text from .env) is covered with a mask on form screenshots,
+    # so the real login does not end up in the baseline images. Selector is relative to the form (#AccountFrm)
+    LOGIN_NAME_MASK_SELECTOR = ".form-group:has-text('Login Name:') .input-group"
 
     # Validation messages under the fields: field ➤ message
     FIELD_ERROR_MESSAGES = {
@@ -214,6 +219,24 @@ class AccountEditAccountDetailsPage(AccountBasePage):
     def expect_error_alert(self) -> None:
         expect(self.error_alert).to_be_visible()
         expect(self.error_alert).to_contain_text(self.ERROR_ALERT_TEXT)
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_form_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        self.move_mouse_away()
+        assert_snapshot(
+            self.form,
+            name=self.snapshot_file_name(name),
+            mask_elements=[self.LOGIN_NAME_MASK_SELECTOR],
+        )
+
+    def expect_error_alert_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_error_alert()
+        self.move_mouse_away()
+        assert_snapshot(self.error_alert, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
