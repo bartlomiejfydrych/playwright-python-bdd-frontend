@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.base_page import BasePage
 
@@ -275,6 +276,20 @@ class ContactUsPage(BasePage):
         expect(self.success_message).to_have_text(self.SUCCESS_MESSAGE)
         expect(self.continue_button).to_be_visible()
         expect(self.form).to_have_count(0)
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_form_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_form_page_still_open()
+        self.move_mouse_away()
+        assert_snapshot(self.form, name=self.snapshot_file_name(name))
+
+    def expect_success_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_success_loaded()
+        self.move_mouse_away()
+        assert_snapshot(self.success_section, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
