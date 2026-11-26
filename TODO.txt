@@ -2,7 +2,6 @@ Lista rzeczy do zrobienia:
 
 – Dodać jakąś porównywarkę screenów i dostosować pod nią testy
 – Dodać raport Playwright lub Allure
-– Usunąć feature i testy `home_page`
 – Zrobić osobny katalog z testami Playwright bez otoczki BDD
 – Zaktualizować główne README projektu
 – Dodać już projekt na Linkedin i do CV
