@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.account.account_base_page import AccountBasePage
 
@@ -172,6 +173,20 @@ class AccountChangePasswordPage(AccountBasePage):
     def expect_no_field_errors(self) -> None:
         for field in self.FIELDS:
             expect(self.field_error(field)).to_have_text("")
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_form_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        self.move_mouse_away()
+        assert_snapshot(self.form, name=self.snapshot_file_name(name))
+
+    def expect_error_alert_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_error_alert()
+        self.move_mouse_away()
+        assert_snapshot(self.error_alert, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
