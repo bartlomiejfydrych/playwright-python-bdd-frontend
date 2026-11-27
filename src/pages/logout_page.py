@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.base_page import BasePage
 
@@ -137,6 +138,22 @@ class LogoutPage(BasePage):
         self.expect_messages()
         self.expect_continue_button_visible()
         self.expect_logged_out()
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_heading_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        self.move_mouse_away()
+        assert_snapshot(self.heading, name=self.snapshot_file_name(name))
+
+    def expect_content_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        # The two messages + the Continue button
+        self.expect_messages()
+        self.expect_continue_button_visible()
+        self.move_mouse_away()
+        assert_snapshot(self.content_section, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================

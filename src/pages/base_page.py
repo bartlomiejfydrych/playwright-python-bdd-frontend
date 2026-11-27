@@ -1,5 +1,6 @@
 import sys
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 
 class BasePage:
@@ -360,6 +361,15 @@ class BasePage:
 
     def expect_logout_link_absent(self) -> None:
         expect(self.logout_link).to_have_count(0)
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_account_menu_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        # The dropdown is open only while the mouse is over ACCOUNT, so here (unlike elsewhere) we do NOT move the mouse
+        expect(self.account_dropdown).to_be_visible()
+        assert_snapshot(self.account_dropdown, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
