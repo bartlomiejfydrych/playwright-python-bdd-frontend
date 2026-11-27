@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.base_page import BasePage
 
@@ -42,6 +43,7 @@ class LoginPage(BasePage):
         # ------------
 
         # Registration form (#accountFrm)
+        self.new_customer_section = page.locator(".newcustomer")
         self.new_customer_heading = page.locator(".newcustomer h2.heading2")
         self.register_form = page.locator("#accountFrm")
         self.register_account_radio = page.locator("#accountFrm_accountregister")
@@ -52,6 +54,7 @@ class LoginPage(BasePage):
         # ------------------
 
         # Login form (#loginFrm)
+        self.returning_customer_section = page.locator(".returncustomer")
         self.returning_customer_heading = page.locator(".returncustomer h2.heading2")
         self.login_form = page.locator("#loginFrm")
         self.login_name_input = page.locator("#loginFrm_loginname")
@@ -165,6 +168,25 @@ class LoginPage(BasePage):
 
     def expect_error_contains(self, text: str) -> None:
         expect(self.error_alert.first).to_contain_text(text)
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_returning_customer_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        self.move_mouse_away()
+        assert_snapshot(self.returning_customer_section, name=self.snapshot_file_name(name))
+
+    def expect_new_customer_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        self.move_mouse_away()
+        assert_snapshot(self.new_customer_section, name=self.snapshot_file_name(name))
+
+    def expect_error_alert_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_error_visible()
+        self.move_mouse_away()
+        assert_snapshot(self.error_alert.first, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
