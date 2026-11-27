@@ -1,4 +1,6 @@
 import sys
+from typing import Literal
+
 from playwright.sync_api import Locator, Page, expect
 from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
@@ -144,8 +146,8 @@ class BasePage:
     # Navigation
     # ----------
 
-    def goto(self, path: str = "/"):
-        self.page.goto(path)
+    def goto(self, path: str = "/", wait_until: Literal["commit", "domcontentloaded", "load", "networkidle"] = "load"):
+        self.page.goto(path, wait_until=wait_until)
 
     def go_back(self) -> None:
         self.page.go_back()

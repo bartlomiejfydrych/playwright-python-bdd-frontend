@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.base_page import BasePage
 
@@ -45,6 +46,11 @@ class SearchResultsPage(BasePage):
         self.description_checkbox = page.locator("#description")
         self.model_checkbox = page.locator("#model")
         self.search_button_in_form = page.locator("#search_button")
+        # The whole search criteria block = the closest element that contains both the #keyword field and the Search button
+        # (on this page it is not a <form>, so we cannot select it by tag)
+        self.search_criteria_form = self.keyword_input.locator(
+            "xpath=ancestor::*[.//*[@id='search_button']][1]"
+        )
 
         # -------
         # RESULTS
@@ -52,6 +58,8 @@ class SearchResultsPage(BasePage):
 
         # "prdocutname" is a typo in the store's HTML, not in our code
         self.product_names = page.locator("a.prdocutname")
+        self.grid = page.locator(".thumbnails.grid")
+        self.grid_images = page.locator(".thumbnails.grid img")
 
     # endregion
     # ==========================================================================================================
@@ -75,6 +83,15 @@ class SearchResultsPage(BasePage):
         # (text-transform: uppercase), a inner_text zwraca tekst już po tej transformacji
         texts = self.product_names.filter(visible=True).all_text_contents()
         return sorted({text.strip() for text in texts if text.strip()})
+
+    def wait_for_grid_images(self) -> None:
+        # A screenshot taken before the product images are loaded would never match the baseline
+        self.page.wait_for_function(
+            """() => {
+                const images = [...document.querySelectorAll('.thumbnails.grid img')];
+                return images.length > 0 && images.every(img => img.complete && img.naturalWidth > 0);
+            }"""
+        )
 
     def message(self, text: str) -> Locator:
         # Scoped to the main container so the header/footer can never produce a false match
@@ -128,6 +145,22 @@ class SearchResultsPage(BasePage):
     def expect_message(self, text: str) -> None:
         self.expect_loaded()
         expect(self.message(text)).to_be_visible()
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_search_criteria_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        self.move_mouse_away()
+        assert_snapshot(self.search_criteria_form, name=self.snapshot_file_name(name))
+
+    def expect_results_grid_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        self.expect_loaded()
+        expect(self.grid).to_be_visible()
+        self.wait_for_grid_images()
+        self.move_mouse_away()  # a hovered product tile looks different
+        assert_snapshot(self.grid, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================

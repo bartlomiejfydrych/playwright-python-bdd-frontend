@@ -1,6 +1,7 @@
 import re
 
 from playwright.sync_api import Locator, Page, expect
+from pytest_playwright_visual_snapshot.plugin import AssertSnapshot
 
 from src.pages.base_page import BasePage
 
@@ -124,7 +125,7 @@ class ProductPage(BasePage):
     # ----------
 
     def goto_product(self, product_id: int | str) -> None:
-        self.goto(self.PATH.format(product_id=product_id))
+        self.goto(self.PATH.format(product_id=product_id), wait_until="domcontentloaded")
 
     # ----------------
     # Dynamic locators
@@ -337,6 +338,17 @@ class ProductPage(BasePage):
         expect(self.review_alert_success).to_be_visible()
         if message:
             expect(self.review_alert_success).to_contain_text(message)
+
+    # -----------------
+    # Visual assertions
+    # -----------------
+
+    def expect_tags_matches_snapshot(self, assert_snapshot: AssertSnapshot, name: str) -> None:
+        # Only the Tags tab content (not the whole page): the rest of the product page is not the subject here
+        expect(self.tags_pane).to_be_visible()
+        expect(self.tags.first).to_be_visible()
+        self.move_mouse_away()
+        assert_snapshot(self.tags_pane, name=self.snapshot_file_name(name))
 
     # endregion
     # ==========================================================================================================
